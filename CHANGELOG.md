@@ -1,9 +1,9 @@
 # Changelog
 
-All notable changes are recorded here. The project has not published a release
-yet.
+All notable changes are recorded here. Version 0.1.13 is the first published
+release of the project.
 
-## [0.1.13] — Unreleased
+## [0.1.13] — 2026-08-27
 
 ### Changed
 

@@ -174,7 +174,7 @@ days. It only accepts validated direct children of the configured runs root,
 preserves the latest failed run for each job, and leaves SQLite run metadata in
 place. Orphan directories are not removed.
 
-## Non-goals for 0.1.0
+## Historical non-goals for 0.1.0
 
 - Built-in OneDragon adapter.
 - End-to-end OK-WW execution or process-termination compatibility verification.

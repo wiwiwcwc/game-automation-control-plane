@@ -4,6 +4,10 @@ The repository source code and original project artwork are licensed under
 AGPL-3.0-only. Keep the root `LICENSE` file in the first public commit and in
 every distributed Windows package.
 
+This document records the original first-publication workflow. The repository
+is now public and `v0.1.13` is released; use the steps below as a checklist for
+future releases, not as a request to recreate the existing repository.
+
 ## 1. Protect the commit email
 
 In GitHub, open **Settings → Emails**, enable **Keep my email addresses
@@ -46,7 +50,7 @@ git commit -m "Initial public release"
 Confirm that no `dist`, `build`, virtual-environment, database, log, or account
 configuration files appear in the staged list.
 
-## 4. Create the repository
+## 4. Create the repository (historical bootstrap)
 
 Recommended name: `game-automation-control-plane`.
 
@@ -64,7 +68,7 @@ git push -u origin main
 Do not ask GitHub to create another README, `.gitignore`, or license when using
 the website instead; this repository already contains all three.
 
-## 5. Repository settings after the first push
+## 5. Repository settings and future releases
 
 - Enable private vulnerability reporting under **Security**.
 - Protect `main` and require the Windows package workflow for pull requests.
