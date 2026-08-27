@@ -1,0 +1,68 @@
+from __future__ import annotations
+
+import tomllib
+
+from game_control_plane.integrations.maa_managed_task import (
+    default_managed_daily,
+    render_managed_task_toml,
+    validate_managed_daily,
+    write_managed_task,
+)
+
+
+def managed_config() -> dict[str, object]:
+    options = default_managed_daily()
+    options.update(
+        {
+            "stage": "1-7",
+            "fight_times": 12,
+            "series": 6,
+            "medicine": 2,
+            "medicine_expire_days": 3,
+            "stone": 0,
+            "credit_fight": True,
+        }
+    )
+    return {
+        "task_mode": "managed",
+        "task_name": "control_plane_daily_test",
+        "managed_daily": options,
+    }
+
+
+def test_rendered_managed_task_uses_current_fight_and_daily_parameters():
+    parsed = tomllib.loads(render_managed_task_toml(managed_config()))
+
+    tasks = {task["type"]: task for task in parsed["tasks"]}
+    assert list(tasks) == ["StartUp", "Recruit", "Infrast", "Mall", "Fight", "Award"]
+    assert tasks["Mall"]["params"] == {
+        "visit_friends": True,
+        "shopping": True,
+        "credit_fight": True,
+    }
+    assert tasks["Fight"]["params"] == {
+        "stage": "1-7",
+        "medicine": 2,
+        "medicine_expire_days": 3,
+        "stone": 0,
+        "times": 12,
+        "series": 6,
+    }
+    assert tasks["Award"]["params"] == {"award": True, "mail": True}
+
+
+def test_managed_task_is_written_only_to_its_scoped_task_file(tmp_path):
+    path = write_managed_task(tmp_path, managed_config())
+
+    assert path == tmp_path / "tasks" / "control_plane_daily_test.toml"
+    assert path.is_file()
+    assert not (tmp_path / "tasks" / ".control_plane_daily_test.toml.tmp").exists()
+
+
+def test_managed_task_rejects_out_of_range_series():
+    config = managed_config()
+    config["managed_daily"]["series"] = 11
+
+    errors = validate_managed_daily(config)
+
+    assert any("series" in error for error in errors)

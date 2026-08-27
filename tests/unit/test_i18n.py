@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+from PySide6.QtCore import QSettings
+from PySide6.QtWidgets import QApplication
+
+from game_control_plane.domain.models import DailyStatus, RunState
+from game_control_plane.ui.dashboard import Dashboard
+from game_control_plane.ui.i18n import (
+    LanguageManager,
+    preflight_progress_text,
+    state_text,
+)
+from game_control_plane.ui.job_editor import JobEditorDialog
+from game_control_plane.ui import job_editor
+from game_control_plane.platform.paths import app_paths
+from game_control_plane.ui.main_window import MainWindow
+
+
+_APP: QApplication | None = None
+
+
+def app_instance() -> QApplication:
+    global _APP
+    _APP = QApplication.instance() or QApplication([])
+    return _APP
+
+
+def test_default_language_is_chinese_and_language_choice_persists(tmp_path):
+    settings_path = tmp_path / "language.ini"
+    settings = QSettings(str(settings_path), QSettings.Format.IniFormat)
+    manager = LanguageManager(settings=settings)
+
+    assert manager.language == "zh_CN"
+    assert manager.text("button.run") == "运行"
+
+    manager.set_language("en_US")
+    restored = LanguageManager(
+        settings=QSettings(str(settings_path), QSettings.Format.IniFormat)
+    )
+    assert restored.language == "en_US"
+    assert restored.text("button.run") == "Run"
+
+
+def test_all_states_and_daily_statuses_have_chinese_display_text():
+    manager = LanguageManager("zh_CN", persist=False)
+    assert all(state_text(manager, state.value) != f"state.{state.value}" for state in RunState)
+    assert {status.value for status in DailyStatus} == {"pending", "completed"}
+    assert manager.text("card.pending") == "待完成"
+    assert manager.text("card.completed") == "已完成"
+
+
+def test_dashboard_retranslates_live_without_restarting():
+    app_instance()
+    manager = LanguageManager("zh_CN", persist=False)
+    dashboard = Dashboard(manager)
+    assert dashboard.run_dailies_button.text() == "运行今日任务"
+
+    manager.set_language("en_US")
+
+    assert dashboard.run_dailies_button.text() == "Run Today's Dailies"
+    assert dashboard.title_label.text() == "Automation Control Plane"
+
+
+def test_new_integration_jobs_use_chinese_game_names_by_default(monkeypatch):
+    app_instance()
+    monkeypatch.setattr(job_editor, "discover_maa_cli", lambda: None)
+    monkeypatch.setattr(job_editor, "discover_mumu_cli", lambda: None)
+    monkeypatch.setattr(job_editor, "discover_ok_ww", lambda: None)
+    monkeypatch.setattr(job_editor, "discover_fos", lambda: None)
+    manager = LanguageManager("zh_CN", persist=False)
+    dialog = JobEditorDialog(i18n=manager)
+    dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("maa_cli"))
+    assert dialog.game_name.text() == "明日方舟"
+    dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("ok_ww"))
+    assert dialog.game_name.text() == "鸣潮"
+    dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("maa_punish"))
+    assert dialog.game_name.text() == "战双帕弥什"
+    dialog.close()
+
+
+def test_main_window_language_menu_switches_interface_immediately(tmp_path):
+    app_instance()
+    manager = LanguageManager("zh_CN", persist=False)
+    window = MainWindow(app_paths(tmp_path / "app"), i18n=manager)
+    assert window.windowTitle() == "游戏自动化控制台"
+    assert window.settings_menu.title() == "设置"
+
+    window.language_actions["en_US"].trigger()
+
+    assert manager.language == "en_US"
+    assert window.windowTitle() == "Game Automation Control Plane"
+    assert window.settings_menu.title() == "Settings"
+    window.database.close()
+
+
+def test_mumu_progress_is_localized_without_changing_unknown_technical_text():
+    manager = LanguageManager("zh_CN", persist=False)
+    assert preflight_progress_text(
+        manager,
+        "Waiting for MuMu instance 1 to connect to ADB… 8/120 seconds",
+    ) == "正在等待 MuMu 实例 1 连接 ADB… 8/120 秒"
+    assert preflight_progress_text(manager, "raw third-party message") == "raw third-party message"

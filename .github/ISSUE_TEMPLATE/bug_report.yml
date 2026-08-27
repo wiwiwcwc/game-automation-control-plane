@@ -1,0 +1,59 @@
+name: Bug 报告
+description: 报告可复现的程序错误或集成失败
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: 请先删除日志中的账号、令牌和个人路径，再提交公开 Issue。
+  - type: input
+    id: version
+    attributes:
+      label: Control Plane 版本
+      placeholder: 例如 0.1.13
+    validations:
+      required: true
+  - type: dropdown
+    id: integration
+    attributes:
+      label: 集成类型
+      options:
+        - MAA / maa-cli
+        - MAA_Punish / FOS
+        - OK-WW
+        - Custom CLI
+        - 程序界面或其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 请提供最小、稳定的复现步骤。
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 环境信息
+      description: Windows 版本、模拟器及外部自动化工具版本。
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 已脱敏日志
+      description: 仅粘贴与问题直接相关的片段，不要上传完整数据库或账号配置。
+      render: text

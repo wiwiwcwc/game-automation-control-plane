@@ -1,0 +1,84 @@
+name: Windows package proof
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test and build dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[test,build]" -c packaging\constraints.txt
+
+      - name: Run full test suite
+        shell: pwsh
+        run: |
+          $env:QT_QPA_PLATFORM = "offscreen"
+          python -m pytest
+
+      - name: Build Windows onedir package
+        shell: pwsh
+        run: .\packaging\build_windows.ps1 -PythonExecutable python
+
+      - name: Inspect package contents
+        shell: pwsh
+        run: |
+          $package = Resolve-Path "dist\GameAutomationControlPlane"
+          $exe = Join-Path $package "GameAutomationControlPlane.exe"
+          $migration = Join-Path $package "_internal\game_control_plane\persistence\migrations\001_initial.sql"
+          $pngIcon = Join-Path $package "_internal\game_control_plane\assets\app_icon.png"
+          $icoIcon = Join-Path $package "_internal\game_control_plane\assets\app_icon.ico"
+          $notice = Join-Path $package "THIRD_PARTY_NOTICES.md"
+          $projectLicense = Join-Path $package "LICENSE"
+          $lgpl = Join-Path $package "licenses\LGPL-3.0-only.txt"
+          $gpl = Join-Path $package "licenses\GPL-3.0-only.txt"
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Packaged executable is missing: $exe" }
+          if (-not (Test-Path -LiteralPath $migration -PathType Leaf)) { throw "SQL migration is missing: $migration" }
+          if (-not (Test-Path -LiteralPath $pngIcon -PathType Leaf)) { throw "PNG icon is missing: $pngIcon" }
+          if (-not (Test-Path -LiteralPath $icoIcon -PathType Leaf)) { throw "ICO icon is missing: $icoIcon" }
+          if (-not (Test-Path -LiteralPath $notice -PathType Leaf)) { throw "Third-party notice is missing: $notice" }
+          if (-not (Test-Path -LiteralPath $projectLicense -PathType Leaf)) { throw "Project license is missing: $projectLicense" }
+          if (-not (Test-Path -LiteralPath $lgpl -PathType Leaf)) { throw "LGPL license is missing: $lgpl" }
+          if (-not (Test-Path -LiteralPath $gpl -PathType Leaf)) { throw "GPL license is missing: $gpl" }
+          if (-not (Get-ChildItem -LiteralPath $package -Filter "qwindows.dll" -Recurse -File)) { throw "Qt Windows platform plugin is missing." }
+          if (Test-Path -LiteralPath (Join-Path $package "_internal\icuuc.dll")) { throw "Unexpected foreign ICU library in package root." }
+          foreach ($forbidden in @("tests", ".git", ".venv", "pyproject.toml")) {
+            if (Test-Path -LiteralPath (Join-Path $package $forbidden)) { throw "Unexpected development payload: $forbidden" }
+          }
+
+      - name: Smoke-launch packaged executable
+        shell: pwsh
+        run: .\packaging\smoke_test.ps1 -ExecutablePath .\dist\GameAutomationControlPlane\GameAutomationControlPlane.exe -DataDirectory (Join-Path $env:RUNNER_TEMP "game-control-plane-smoke")
+
+      - name: Zip onedir package
+        shell: pwsh
+        run: |
+          $zip = "dist\GameAutomationControlPlane-windows.zip"
+          Compress-Archive -Path dist\GameAutomationControlPlane -DestinationPath $zip
+          $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  GameAutomationControlPlane-windows.zip" | Set-Content -Encoding ascii "$zip.sha256"
+
+      - name: Upload Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: GameAutomationControlPlane-windows
+          path: |
+            dist/GameAutomationControlPlane-windows.zip
+            dist/GameAutomationControlPlane-windows.zip.sha256
