@@ -9,6 +9,7 @@
 [![Windows](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](README.md)
 
 <img src="src/game_control_plane/assets/app_icon.png" alt="手游日常任务控制台图标" width="128">
+<!-- 我老婆 -->
 
 > 一个用于集中运行和记录手游日常任务的 Windows 桌面控制台。
 
