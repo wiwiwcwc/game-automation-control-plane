@@ -59,7 +59,7 @@ def test_dashboard_retranslates_live_without_restarting():
     manager.set_language("en_US")
 
     assert dashboard.run_dailies_button.text() == "Run Today's Dailies"
-    assert dashboard.title_label.text() == "Automation Control Plane"
+    assert dashboard.title_label.text() == "Hsiesta"
 
 
 def test_new_integration_jobs_use_chinese_game_names_by_default(monkeypatch):
@@ -87,13 +87,13 @@ def test_main_window_language_menu_switches_interface_immediately(tmp_path):
     app_instance()
     manager = LanguageManager("zh_CN", persist=False)
     window = MainWindow(app_paths(tmp_path / "app"), i18n=manager)
-    assert window.windowTitle() == "游戏自动化控制台"
+    assert window.windowTitle() == "休汐 Hsiesta"
     assert window.settings_menu.title() == "设置"
 
     window.language_actions["en_US"].trigger()
 
     assert manager.language == "en_US"
-    assert window.windowTitle() == "Game Automation Control Plane"
+    assert window.windowTitle() == "Hsiesta"
     assert window.settings_menu.title() == "Settings"
     window.database.close()
 

@@ -7,8 +7,8 @@ behavior you will touch.
 
 ## Project scope
 
-Game Automation Control Plane is a Windows-first PySide6 desktop control plane
-for organizing external game-automation jobs. It coordinates configured
+Hsiesta (休汐) is a Windows-first PySide6 desktop control plane for organizing
+external game-automation jobs. It coordinates configured
 launchers, captures their output, stores run history in SQLite, and presents a
 small dashboard. It is not a game client, image-recognition engine, emulator,
 or replacement for MAA, MAA_Punish/FOS, OK-WW, MuMu, MaaFramework, or OneDragon.

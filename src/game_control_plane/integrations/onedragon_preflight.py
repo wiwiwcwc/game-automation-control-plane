@@ -96,7 +96,7 @@ def run_onedragon_preflight(
             "Account instances",
             CheckState.PASSED,
             account_summary,
-            details="The account value is passed through unchanged; Control Plane does not edit OneDragon account configuration.",
+            details="The account value is passed through unchanged; Hsiesta does not edit OneDragon account configuration.",
         )
     )
 

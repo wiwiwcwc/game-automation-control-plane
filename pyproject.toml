@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "game-automation-control-plane"
-version = "0.1.15"
-description = "A small Windows desktop control plane for game automation jobs"
+version = "0.1.16"
+description = "Hsiesta (休汐), a Windows desktop console for mobile-game daily tasks"
 readme = "README.md"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
+
 classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
@@ -19,6 +20,11 @@ dependencies = [
     "PySide6>=6.7,<7",
     "tzdata>=2024.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/wiwiwcwc/hsiesta"
+Repository = "https://github.com/wiwiwcwc/hsiesta"
+Issues = "https://github.com/wiwiwcwc/hsiesta/issues"
 
 [project.optional-dependencies]
 test = ["pytest>=8.0"]

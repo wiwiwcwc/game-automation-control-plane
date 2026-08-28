@@ -143,7 +143,7 @@ def run_maa_preflight(
             "Open Edit and enter the task name shown by `maa list`.",
         )
     if is_managed_maa_config(config):
-        _notify(progress, "Preparing the Control Plane MAA task…")
+        _notify(progress, "Preparing the Hsiesta MAA task…")
         config_dir_result = command_runner.run((executable, "dir", "config"), 10)
         config_dir_text = _last_line(config_dir_result.stdout)
         config_dir = Path(config_dir_text) if config_dir_text else None
@@ -168,7 +168,7 @@ def run_maa_preflight(
                 steps,
                 "task",
                 "MAA task",
-                "Control Plane could not write the managed MAA task.",
+                "Hsiesta could not write the managed MAA task.",
                 "Check access to MAA's config/tasks directory, then select Check again.",
                 str(exc),
             )

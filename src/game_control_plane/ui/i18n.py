@@ -7,10 +7,12 @@ from PySide6.QtCore import QObject, QSettings, Signal
 
 DEFAULT_LANGUAGE = "zh_CN"
 SUPPORTED_LANGUAGES = ("zh_CN", "en_US")
+LEGACY_QSETTINGS_ORGANIZATION = "GameAutomationControlPlane"
+LEGACY_QSETTINGS_APPLICATION = "GameAutomationControlPlane"
 
 
 _ZH_CN = {
-    "app.title": "游戏自动化控制台",
+    "app.title": "休汐 Hsiesta",
     "menu.settings": "设置",
     "menu.language": "语言",
     "language.zh_CN": "简体中文",
@@ -242,7 +244,7 @@ _ZH_CN = {
 
 
 _EN_US = {
-    "app.title": "Game Automation Control Plane",
+    "app.title": "Hsiesta",
     "menu.settings": "Settings",
     "menu.language": "Language",
     "language.zh_CN": "简体中文",
@@ -252,7 +254,7 @@ _EN_US = {
     "game.wuthering": "Wuthering Waves",
     "game.zzz": "Zenless Zone Zero",
     "dashboard.eyebrow": "GAME AUTOMATION",
-    "dashboard.title": "Automation Control Plane",
+    "dashboard.title": "Hsiesta",
     "dashboard.subtitle": "Manage daily game automations, live status, and logs in one place",
     "dashboard.pending": "Pending",
     "dashboard.completed": "Completed",
@@ -371,9 +373,9 @@ _EN_US = {
     "job.zzz_executable": "Zenless Zone Zero OneDragon launcher",
     "job.help_custom": "The selected program is launched directly. Scripts must use an explicit interpreter such as Python or PowerShell; no implicit shell is used.",
     "job.help_maa": "The recommended mode generates an isolated task with Credits, friends, shopping, Sanity, and consecutive-battle controls. Success requires every selected task summary and at least one completed Sanity battle before an owned MuMu instance can close.",
-    "job.help_fos": "Choose a task configuration already saved in FOS. Control Plane starts or reuses FOS, waits for the real task-flow result, and can close the associated FOS after success; MuMu details are read from the FOS configuration.",
+    "job.help_fos": "Choose a task configuration already saved in FOS. Hsiesta starts or reuses FOS, waits for the real task-flow result, and can close the associated FOS after success; MuMu details are read from the FOS configuration.",
     "job.help_okww": "OK-WW runs the selected task once. The close option adds -e; without it, automation exits and leaves the game open.",
-    "job.help_zzz": "Run OneDragon: connect an installed Zenless Zone Zero OneDragon launcher. Leave Account instances blank to use the active_in_od account, or enter 1,2. The close option passes -c so OneDragon closes the game internally after it finishes; Control Plane does not edit account settings, take over the game window, or force-stop processes.",
+    "job.help_zzz": "Run OneDragon: connect an installed Zenless Zone Zero OneDragon launcher. Leave Account instances blank to use the active_in_od account, or enter 1,2. The close option passes -c so OneDragon closes the game internally after it finishes; Hsiesta does not edit account settings, take over the game window, or force-stop processes.",
     "job.choose_executable": "Choose executable or interpreter",
     "job.choose_working": "Choose working directory",
     "job.choose_mumu": "Choose MuMu command tool",
@@ -406,7 +408,7 @@ _EN_US = {
     "fos_preflight.progress.mumu_wait": "Waiting for MuMu instance {instance} to start Android… {elapsed}/{timeout} seconds",
     "onedragon_preflight.title": "Zenless Zone Zero OneDragon Setup Guide",
     "onedragon_preflight.heading": "Check Zenless Zone Zero OneDragon before starting",
-    "onedragon_preflight.description": "Control Plane checks only the launcher and local installation layout; it does not download or modify OneDragon. Complete the first failed step, then check again.",
+    "onedragon_preflight.description": "Hsiesta checks only the launcher and local installation layout; it does not download or modify OneDragon. Complete the first failed step, then check again.",
     "onedragon_preflight.step.executable": "OneDragon launcher",
     "onedragon_preflight.step.layout": "Installation layout",
     "onedragon_preflight.step.accounts": "Account instances",
@@ -433,7 +435,7 @@ _EN_US = {
     "preflight.progress_title": "MAA setup check",
     "preflight.progress.program": "Checking the MAA program…",
     "preflight.progress.task": "Checking the selected MAA task…",
-    "preflight.progress.managed_task": "Preparing the Control Plane managed MAA task…",
+    "preflight.progress.managed_task": "Preparing the Hsiesta-managed MAA task…",
     "preflight.progress.config": "Validating the task configuration safely…",
     "preflight.progress.emulator": "Checking the emulator connection…",
     "preflight.progress.mumu_check": "Checking MuMu instance {instance}…",
@@ -489,8 +491,10 @@ class LanguageManager(QObject):
     ):
         super().__init__(parent)
         self._persist = persist
+        # Keep the legacy organization/application keys so existing UI settings
+        # remain available after the Hsiesta rebrand.
         self._settings = settings or QSettings(
-            "GameAutomationControlPlane", "GameAutomationControlPlane"
+            LEGACY_QSETTINGS_ORGANIZATION, LEGACY_QSETTINGS_APPLICATION
         )
         saved = self._settings.value("ui/language", DEFAULT_LANGUAGE, type=str)
         self._language = self._normalized(language or saved)
@@ -541,7 +545,7 @@ def game_text(manager: LanguageManager, name: str, runner_type: str) -> str:
 def preflight_progress_text(manager: LanguageManager, message: str) -> str:
     exact = {
         "Checking the MAA program…": "preflight.progress.program",
-        "Preparing the Control Plane MAA task…": "preflight.progress.managed_task",
+        "Preparing the Hsiesta MAA task…": "preflight.progress.managed_task",
         "Checking the selected MAA task…": "preflight.progress.task",
         "Validating the task configuration safely…": "preflight.progress.config",
         "Checking the emulator connection…": "preflight.progress.emulator",

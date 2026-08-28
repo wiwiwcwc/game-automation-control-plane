@@ -3,6 +3,16 @@
 All notable changes are recorded here. Version 0.1.13 is the first published
 release of the project.
 
+## [0.1.16] — 2026-08-28
+
+### Changed
+
+- Rebranded the desktop application as **休汐 Hsiesta** and refreshed the
+  bilingual README and GitHub-facing copy.
+- Kept the existing application data directory, UI settings keys, managed MAA
+  task names, Python package, console command, and Windows executable layout so
+  existing installations can be upgraded without data migration.
+
 ## [0.1.15] — 2026-08-28
 
 ### Fixed

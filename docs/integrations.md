@@ -5,7 +5,7 @@ This page distinguishes two kinds of evidence:
 - **Locally verified** means the behavior is implemented in this repository and
   covered by its current tests or a direct local check.
 - **Upstream-documented** means an external project's own documentation or
-  repository describes an interface. It does not mean this control plane has
+  repository describes an interface. It does not mean Hsiesta has
   implemented or tested that interface.
 
 ## Summary
@@ -116,7 +116,7 @@ profile and only proceeds after that exact serial reports `device`. An
 already-ready device is never relaunched.
 
 The same editor can enable close-after-success. The preflight marks ownership
-only when Control Plane issued the launch request and the configured ADB device
+only when Hsiesta issued the launch request and the configured ADB device
 then became ready. Only that run-scoped proof allows
 `mumu-cli.exe control --vmindex <n> shutdown` after MAA exits normally with code
 zero. An instance that was already running is left open. The installed MuMu
@@ -178,7 +178,7 @@ selected for verification identifies MuMu instance `0` and ADB endpoint
 successful live game task.
 
 The helper process may return zero after forwarding a request to a resident
-FOS GUI. Control Plane therefore runs a packaged internal monitor, snapshots
+FOS GUI. Hsiesta therefore runs a packaged internal monitor, snapshots
 the current end of `debug/gui.log`, and accepts success only after fresh
 evidence for the complete high-level sequence: `TASK_FLOW_START`, the
 all-tasks-complete message, `task_flow_finished` with `manual_stop=False`,
@@ -337,4 +337,4 @@ should not be added from a product name alone. It should have at least:
    missing or incompatible;
 4. a deterministic launch and output-capture test; and
 5. an explicit decision about how success, failure, and daily completion map to
-   this control plane without silently marking a daily complete.
+   Hsiesta without silently marking a daily complete.

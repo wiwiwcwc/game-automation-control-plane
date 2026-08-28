@@ -7,7 +7,7 @@ security boundaries, and release checks.
 
 Quick reminders:
 
-- This is a Windows-first PySide6 control plane, not a game client or a bundled
+- Hsiesta is a Windows-first PySide6 control plane, not a game client or a bundled
   copy of MAA, MAA_Punish/FOS, OK-WW, MuMu, MaaFramework, or OneDragon.
 - Keep external launches explicit and non-blocking; do not introduce implicit
   shell commands or GUI-thread waits.

@@ -1,8 +1,8 @@
 # Third-party notices
 
 This document covers the Qt for Python components redistributed in the verified
-Windows package of Game Automation Control Plane. The Control Plane source code
-and original project artwork are licensed separately under the
+Windows package of Hsiesta (休汐). The Hsiesta source code and original project
+artwork are licensed separately under the
 [GNU Affero General Public License v3.0 only](LICENSE).
 
 ## Qt for Python / PySide6 6.11.2
@@ -44,7 +44,7 @@ Corresponding source for the pinned binary version:
 The onedir Windows package keeps Qt and PySide6 libraries as separate files
 under `_internal/PySide6`. It does not prevent replacement of those libraries.
 An ABI-compatible build may be substituted in that directory; keep the same
-filenames and directory layout. The Control Plane source needed to rebuild the
+filenames and directory layout. The Hsiesta source needed to rebuild the
 application is in this repository.
 
 The official Qt source archives are the authoritative source for component-level

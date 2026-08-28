@@ -58,7 +58,7 @@ def main() -> int:
         paths = app_paths().ensure()
         logger = configure_app_logging(paths)
         application = QApplication(sys.argv)
-        application.setApplicationName("Game Automation Control Plane")
+        application.setApplicationName("Hsiesta")
         application.setWindowIcon(QIcon(str(app_icon_path())))
         apply_theme(application)
         window = MainWindow(paths, logger=logger)

@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.14 implementation, not a promise about future
+This document describes the 0.1.16 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -182,6 +182,8 @@ first launch can initialize SQLite.
 The default Windows data root is `%LOCALAPPDATA%\GameAutomationControlPlane`.
 It contains the database, `logs\app.log`, and one captured-run directory per
 run. `GAME_CONTROL_PLANE_DATA_DIR` is an explicit development/test override.
+The `GameAutomationControlPlane` directory name is retained as a compatibility
+identifier for Hsiesta upgrades; the application does not migrate or rename it.
 
 At startup, log retention may remove captured run directories older than 30
 days. It only accepts validated direct children of the configured runs root,

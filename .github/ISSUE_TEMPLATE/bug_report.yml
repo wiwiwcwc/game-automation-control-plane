@@ -9,8 +9,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Control Plane 版本
-      placeholder: 例如 0.1.13
+      label: Hsiesta 版本
+      placeholder: 例如 0.1.16
     validations:
       required: true
   - type: dropdown

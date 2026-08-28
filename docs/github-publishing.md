@@ -5,8 +5,8 @@ AGPL-3.0-only. Keep the root `LICENSE` file in the first public commit and in
 every distributed Windows package.
 
 This document records the original first-publication workflow. The repository
-is now public and `v0.1.14` is released; use the steps below as a checklist for
-future releases, not as a request to recreate the existing repository.
+is public and the current source version is `v0.1.16`; use the steps below as a
+checklist for future releases, not as a request to recreate the repository.
 
 ## 1. Protect the commit email
 
@@ -23,7 +23,7 @@ git config --local user.useConfigOnly true
 git config --local --list
 ```
 
-This keeps the choice local to Game Automation Control Plane and avoids
+This keeps the choice local to Hsiesta and avoids
 changing commit identity in unrelated repositories.
 
 ## 2. Install and authenticate GitHub CLI
@@ -50,18 +50,26 @@ git commit -m "Initial public release"
 Confirm that no `dist`, `build`, virtual-environment, database, log, or account
 configuration files appear in the staged list.
 
-## 4. Create the repository (historical bootstrap)
+## 4. Repository name and historical bootstrap
 
-Recommended name: `game-automation-control-plane`.
-
-For a public repository created from this existing working tree:
+The intended canonical GitHub repository is `wiwiwcwc/hsiesta`. When the GitHub
+rename is carried out, rename the existing repository rather than creating a
+second one: GitHub can then redirect old repository links and Git remotes.
+After the rename, update local clones to the canonical remote:
 
 ```powershell
-gh repo create game-automation-control-plane `
+git remote set-url origin https://github.com/wiwiwcwc/hsiesta.git
+```
+
+If a new repository ever has to be bootstrapped from a separate working tree,
+use:
+
+```powershell
+gh repo create hsiesta `
     --public `
     --source . `
     --remote origin `
-    --description "Windows control plane for multiple game automation tools"
+    --description "休汐 Hsiesta: a Windows desktop console for mobile-game dailies"
 git push -u origin main
 ```
 

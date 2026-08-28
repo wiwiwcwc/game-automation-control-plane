@@ -51,7 +51,7 @@ def assess_onedragon_output(
     return RunResultAssessment(
         needs_attention=True,
         summary=(
-            "OneDragon exited normally, but Control Plane cannot verify that "
+            "OneDragon exited normally, but Hsiesta cannot verify that "
             f"Zenless Zone Zero daily tasks completed ({captured} captured). "
             "Review the captured OneDragon log and mark the daily complete manually if appropriate."
         ),

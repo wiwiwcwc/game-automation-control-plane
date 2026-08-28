@@ -188,7 +188,7 @@ def run_fos_automation(
     launcher = (popen_factory or default_popen)(command, root)
     evidence = FosRunEvidence()
     requested_at = monotonic()
-    _emit(f"[Control Plane] FOS request: {' '.join(command[1:])}")
+    _emit(f"[Hsiesta] FOS request: {' '.join(command[1:])}")
     launcher_exit: int | None = None
     while True:
         text = follower.read_new_text()
@@ -198,26 +198,26 @@ def run_fos_automation(
                 _emit(summary)
             outcome, detail = evidence.consume(text)
             if outcome == "success":
-                _emit(f"[Control Plane] FOS completed: {detail}")
+                _emit(f"[Hsiesta] FOS completed: {detail}")
                 if close_fos_after_run:
                     closer = process_closer or _close_fos_process
                     if not closer(fos_path, launcher):
                         _emit(
-                            "[Control Plane] FOS completed, but its process could not be closed.",
+                            "[Hsiesta] FOS completed, but its process could not be closed.",
                             error=True,
                         )
                         return 24
-                    _emit("[Control Plane] Closed the associated FOS process.")
+                    _emit("[Hsiesta] Closed the associated FOS process.")
                 return 0
             if outcome == "failure":
-                _emit(f"[Control Plane] FOS failed: {detail}", error=True)
+                _emit(f"[Hsiesta] FOS failed: {detail}", error=True)
                 return 20
 
         if launcher_exit is None:
             launcher_exit = launcher.poll()
             if launcher_exit not in (None, 0):
                 _emit(
-                    f"[Control Plane] FOS rejected or failed to start (exit {launcher_exit}).",
+                    f"[Hsiesta] FOS rejected or failed to start (exit {launcher_exit}).",
                     error=True,
                 )
                 return int(launcher_exit)
@@ -225,13 +225,13 @@ def run_fos_automation(
                 elapsed = monotonic() - requested_at
                 if evidence.started or elapsed >= 5.0:
                     _emit(
-                        "[Control Plane] The active FOS process exited before a complete task result.",
+                        "[Hsiesta] The active FOS process exited before a complete task result.",
                         error=True,
                     )
                     return 22
         if not evidence.started and monotonic() - requested_at >= start_timeout_seconds:
             _emit(
-                "[Control Plane] FOS did not start the requested task flow before the timeout.",
+                "[Hsiesta] FOS did not start the requested task flow before the timeout.",
                 error=True,
             )
             return 23
@@ -251,7 +251,7 @@ def run_fos_runner_cli(argv: list[str]) -> int:
             close_fos_after_run=values.close_fos_after_run,
         )
     except OSError as exc:
-        _emit(f"[Control Plane] Could not start or monitor FOS: {exc}", error=True)
+        _emit(f"[Hsiesta] Could not start or monitor FOS: {exc}", error=True)
         return 21
 
 

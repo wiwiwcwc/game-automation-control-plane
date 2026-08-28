@@ -455,12 +455,12 @@ class ExecutionService(QObject):
                 assessment = RunResultAssessment(
                     needs_attention=True,
                     summary=(
-                        "Control Plane could not verify the automation result. "
+                        "Hsiesta could not verify the automation result. "
                         "The emulator was left open."
                     ),
                 )
             if assessment.needs_attention:
-                banner = f"\n[Control Plane] {assessment.summary}\n".encode("utf-8")
+                banner = f"\n[Hsiesta] {assessment.summary}\n".encode("utf-8")
                 active.stderr_file.write(banner)
                 active.stderr_file.flush()
                 self._finalize(
@@ -511,7 +511,7 @@ class ExecutionService(QObject):
         process.setArguments(list(action.arguments))
         process.setStandardInputFile(QProcess.nullDevice())
         active.process = process
-        banner = f"\n[Control Plane] {action.description}: {action.display_command}\n".encode()
+        banner = f"\n[Hsiesta] {action.description}: {action.display_command}\n".encode()
         active.stdout_file.write(banner)
         active.stdout_file.flush()
         process.readyReadStandardOutput.connect(lambda: self._on_output(run_id, "stdout"))

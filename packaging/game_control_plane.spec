@@ -1,4 +1,4 @@
-"""Windows onedir build definition for Game Automation Control Plane."""
+"""Windows onedir build definition for Hsiesta (休汐)."""
 
 from pathlib import Path
 

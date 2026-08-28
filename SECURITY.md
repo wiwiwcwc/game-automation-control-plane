@@ -1,8 +1,7 @@
 # Security policy
 
-This project is an early-stage Windows desktop application. The `v0.1.14`
-release has no published security-support commitment and no dedicated security
-email address.
+This project is an early-stage Windows desktop application. It has no published
+security-support commitment and no dedicated security email address.
 
 ## Reporting a vulnerability
 

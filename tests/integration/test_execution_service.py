@@ -262,7 +262,7 @@ def test_onedragon_clean_exit_needs_manual_completion_review(tmp_path: Path):
     assert "cannot verify" in (finished.error_summary or "")
     assert "manually" in (finished.error_summary or "")
     assert store.daily_status(job) == DailyStatus.PENDING
-    assert "[Control Plane]" in Path(finished.stderr_path).read_text(encoding="utf-8")
+    assert "[Hsiesta]" in Path(finished.stderr_path).read_text(encoding="utf-8")
 
 
 class FakeEmulatorWatchdog(QObject):

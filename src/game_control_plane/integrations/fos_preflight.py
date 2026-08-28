@@ -104,7 +104,7 @@ def run_fos_preflight(
             "launch",
             "Launch contract",
             CheckState.PASSED,
-            "FOS will run the selected configuration and Control Plane will wait for its task-flow result.",
+            "FOS will run the selected configuration and Hsiesta will wait for its task-flow result.",
             details=f"FOS.exe --direct-run --reuse-existing --config-id {config_id}",
         )
     )

@@ -229,7 +229,7 @@ class ZzzOneDragonIntegration:
             working_directory=str(Path(executable).parent),
             display_command=subprocess.list2cmdline((executable, *argument_tuple)),
             # OneDragon does not expose a trustworthy external worker handoff
-            # contract here, so the control plane monitors only this launcher.
+            # contract here, so Hsiesta monitors only this launcher.
         )
 
 
