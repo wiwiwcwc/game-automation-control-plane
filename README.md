@@ -18,11 +18,29 @@
 
 休汐只负责编排外部工具，不是游戏客户端、图像识别引擎或通用机器人。它不会下载或捆绑第三方工具；进程正常退出，也不等于日常已经完成。
 
-当前源码版本为 `0.1.17`，具体支持范围和验证边界以项目文档为准。
+当前源码版本为 `0.1.18`，具体支持范围和验证边界以项目文档为准。
 
 ## Windows 下载
 
-前往 [Releases](https://github.com/wiwiwcwc/hsiesta/releases)，下载对应版本的 Windows ZIP 和同名 `.sha256` 校验文件。当前包内的目录、EXE 和 ZIP 文件名仍保留 `GameAutomationControlPlane`，这是为了兼容已有安装和数据，不影响应用显示品牌。
+### 一键安装（推荐）
+
+前往 [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases)，下载
+`Hsiesta-0.1.18-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
+`%LOCALAPPDATA%\Programs\Hsiesta`，开始菜单快捷方式默认创建，桌面快捷方式可在向导中选择。
+安装器本身不要求管理员权限；应用内部的 `GameAutomationControlPlane.exe` 仍保留
+`requireAdministrator` 清单，因此启动应用时可能出现 UAC，这是安装权限与运行权限的区别。
+
+卸载只移除 Hsiesta 的程序文件、快捷方式和卸载器，不会删除已有的
+`%LOCALAPPDATA%\GameAutomationControlPlane` 用户数据库、日志或配置。当前包内的目录和
+EXE 文件名仍保留 `GameAutomationControlPlane`，这是为了兼容已有安装和数据，不影响应用显示品牌。
+
+> 安装器和应用当前未签名，Windows SmartScreen 可能显示提示。请确认来自官方
+> Releases 页面后再继续，不要为了运行而关闭 Windows Defender 或其他安全软件。
+
+<details>
+<summary>高级校验与便携版</summary>
+
+需要便携运行或进行发布校验时，下载 Windows ZIP 和对应的 `.sha256` 文件：
 
 1. 在 PowerShell 中核对 SHA-256：
 
@@ -33,7 +51,7 @@
 
 2. 完整解压 ZIP 后运行 `GameAutomationControlPlane.exe`，不要单独复制 EXE；旁边的 `_internal` 目录是必需的。
 
-> **安全提醒：** Windows 构建未签名，首次运行可能出现 UAC 或 SmartScreen 提示。请先确认下载来源和校验值，不要为了运行而关闭 Windows Defender。自动化行为也可能受到游戏发行商或平台条款限制，请自行确认并承担相应风险。
+</details>
 
 程序数据默认位于 `%LOCALAPPDATA%\GameAutomationControlPlane\`；本次品牌更名无需移动或重建已有数据，后续启动仍可能按内置迁移更新数据库 schema。开发和测试可以设置 `GAME_CONTROL_PLANE_DATA_DIR` 使用临时目录。
 

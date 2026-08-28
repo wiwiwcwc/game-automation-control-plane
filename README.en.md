@@ -17,11 +17,36 @@ Support will expand gradually as each tool's launch, monitoring, and completion 
 
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.17`.
+The current source version is `0.1.18`.
 
 ## Windows download
 
-Download the Windows ZIP and its matching `.sha256` file from [Releases](https://github.com/wiwiwcwc/hsiesta/releases). The package, executable, and ZIP names still use `GameAutomationControlPlane` so existing installations and local data remain compatible; the application itself is branded Hsiesta.
+### One-click installation (recommended)
+
+Open [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases), download
+`Hsiesta-0.1.18-Setup.exe`, double-click it, and follow the wizard. The installer
+defaults to the current user's `%LOCALAPPDATA%\Programs\Hsiesta`; a Start Menu
+shortcut is created by default and the desktop shortcut is optional. The installer
+itself does not require administrator privileges, while the existing
+`GameAutomationControlPlane.exe` manifest still requests `requireAdministrator`.
+That is why installing can be per-user but launching the application may still show
+UAC.
+
+Uninstall removes only Hsiesta's program files, shortcuts, and uninstaller. It does
+not delete the existing `%LOCALAPPDATA%\GameAutomationControlPlane` database, logs,
+or configuration. The package and executable names still use
+`GameAutomationControlPlane` so existing installations and local data remain
+compatible; the application itself is branded Hsiesta.
+
+> The installer and application are currently unsigned, so Windows SmartScreen may
+> show a warning. Confirm that the download came from the official Releases page;
+> do not disable Windows Defender or other security software to run it.
+
+<details>
+<summary>Advanced verification and portable ZIP</summary>
+
+For portable use or release verification, download the Windows ZIP and its matching
+`.sha256` file:
 
 1. Verify the SHA-256 checksum in PowerShell:
 
@@ -32,7 +57,7 @@ Download the Windows ZIP and its matching `.sha256` file from [Releases](https:/
 
 2. Extract the complete ZIP and run `GameAutomationControlPlane.exe`. Keep the `_internal` directory beside the executable.
 
-> **Security note:** The Windows build is unsigned and may show UAC or SmartScreen prompts. Verify the download before running it, and do not disable Windows Defender or other security software. Automation may be restricted by a game's terms; check the applicable rules and use it at your own risk.
+</details>
 
 Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by default. The rebrand does not require moving or recreating existing data; future launches may still apply the application's built-in schema migrations. Set `GAME_CONTROL_PLANE_DATA_DIR` when you need an isolated development or test directory.
 

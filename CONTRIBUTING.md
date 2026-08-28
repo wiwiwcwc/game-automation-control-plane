@@ -1,7 +1,7 @@
 # Contributing
 
-This repository is an early-stage project, and `v0.1.13` is its first published
-release. By submitting a contribution,
+This repository is an early-stage project, and `v0.1.18` is its current source
+version. By submitting a contribution,
 you agree to license it under the project's
 [GNU Affero General Public License v3.0 only](LICENSE).
 
@@ -29,6 +29,9 @@ follow the commands in [README.md](README.md) or use the workflow in
 [`.github/workflows/windows-package.yml`](.github/workflows/windows-package.yml).
 The Windows build must use [`packaging/build_windows.ps1`](packaging/build_windows.ps1)
 so the pinned Qt/PySide6 notices are checked and placed in the package root.
+The optional installer layer consumes that onedir output via
+[`packaging/build_installer.ps1`](packaging/build_installer.ps1); it is not part
+of the Python development or pytest workflow.
 
 ## Change expectations
 

@@ -57,3 +57,54 @@ def test_windows_package_output_names_remain_compatible():
     assert r"dist\GameAutomationControlPlane" in workflow
     assert "GameAutomationControlPlane.exe" in workflow
     assert "GameAutomationControlPlane-windows.zip" in workflow
+    assert "install_inno_setup.ps1" in workflow
+    assert "build_installer.ps1" in workflow
+    assert "installer_smoke_test.ps1" in workflow
+    assert "dist/Hsiesta-*-Setup.exe" in workflow
+    assert "dist/Hsiesta-*-Setup.exe.sha256" in workflow
+
+
+def test_hsiesta_installer_preserves_legacy_payload_and_user_data_contract():
+    installer = (PROJECT_ROOT / "packaging" / "hsiesta.iss").read_text(
+        encoding="utf-8"
+    )
+    build_script = (PROJECT_ROOT / "packaging" / "build_installer.ps1").read_text(
+        encoding="utf-8"
+    )
+    inno_bootstrap = (
+        PROJECT_ROOT / "packaging" / "install_inno_setup.ps1"
+    ).read_text(encoding="utf-8")
+    smoke_script = (
+        PROJECT_ROOT / "packaging" / "installer_smoke_test.ps1"
+    ).read_text(encoding="utf-8")
+
+    assert "AppId={{57c41fc3-082e-4bf2-98ed-c6ac900d7211}" in installer
+    assert '#define HsiestaAppName "休汐 Hsiesta"' in installer
+    assert r"DefaultDirName={localappdata}\Programs\Hsiesta" in installer
+    assert "PrivilegesRequired=lowest" in installer
+    assert "DisableProgramGroupPage=no" in installer
+    assert r'Source: "..\dist\GameAutomationControlPlane\*"' in installer
+    assert 'Hsiesta-{#AppVersion}-Setup' in installer
+    assert "GameAutomationControlPlane.exe" in installer
+    assert not any(
+        line.strip() == "[UninstallDelete]" for line in installer.splitlines()
+    )
+
+    assert '"/DAppVersion=$version"' in build_script
+    assert "OutputDirectory" in build_script
+    assert "('/O' + $dist)" in build_script
+    assert 'Hsiesta-$version-Setup.exe' in build_script
+    assert 'ProductVersion' in build_script
+    assert '"build", "dist", "tests", "codex-runtimes"' in build_script
+
+    assert '$installerName = "innosetup-$innoVersion-x64.exe"' in inno_bootstrap
+    assert "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f" in inno_bootstrap
+    assert '"Pyrsys B.V."' in inno_bootstrap
+    assert '"/VERYSILENT"' in inno_bootstrap
+
+    assert "SkipPackagedSmoke" in smoke_script
+    assert '"Hsiesta Smoke "' in smoke_script
+    assert "'/GROUP=\"' + $groupName + '\"'" in smoke_script
+    assert "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall" in smoke_script
+    assert "installer-smoke-sentinel.txt" in smoke_script
+    assert "Data sentinel survived" in smoke_script

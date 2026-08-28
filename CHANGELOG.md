@@ -1,7 +1,23 @@
 # Changelog
 
-All notable changes are recorded here. Version 0.1.13 is the first published
-release of the project.
+All notable changes are recorded here. Version 0.1.18 is the current source
+version of the project.
+
+## [0.1.18] — 2026-08-28
+
+### Added
+
+- Added a separate Inno Setup installer with per-user installation under
+  `%LOCALAPPDATA%\Programs\Hsiesta`, Start Menu shortcuts, optional desktop
+  shortcut, and data-safe silent install/uninstall smoke coverage.
+- Added a pinned, hash- and Authenticode-verified Inno Setup 7.1.0 bootstrap
+  for local and Windows Actions builds.
+
+### Changed
+
+- Kept the existing PyInstaller onedir build, portable ZIP, executable and
+  application-data identifiers unchanged; uninstall never removes the
+  `%LOCALAPPDATA%\GameAutomationControlPlane` data directory.
 
 ## [0.1.17] — 2026-08-28
 
@@ -254,5 +270,4 @@ release of the project.
   current MAA `daily` task/configuration or OK-WW process termination.
 - Scheduling, plugins, parallel execution, process-tree stop/cancel, automatic
   verification, or automatic daily completion.
-- Installer, updater, code signing, GitHub Release publication, or a project
-  license.
+- Updater, code signing, GitHub Release publication, or a project license.

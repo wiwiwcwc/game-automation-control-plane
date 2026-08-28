@@ -39,7 +39,8 @@ Keep those values aligned and update `CHANGELOG.md` for user-visible changes.
 - `src/game_control_plane/persistence/`: SQLite store and numbered migrations.
 - `src/game_control_plane/platform/`: application data paths, logging, and
   retention safeguards.
-- `packaging/`: PyInstaller spec, Windows build wrapper, and smoke test.
+- `packaging/`: PyInstaller spec, Windows build wrapper, portable smoke test,
+  and the optional Inno Setup installer layer.
 - `tests/unit/` and `tests/integration/`: the primary behavioral contract.
 
 ## Protected invariants
@@ -128,8 +129,25 @@ actual ZZZ daily flow remain user-side verification boundaries.
 - Use `packaging/build_windows.ps1` and `packaging/smoke_test.ps1`; keep the
   SQL migration, Qt platform plugin, project license, and third-party notices
   in the package.
+- The optional `packaging/hsiesta.iss` layer consumes the already-built
+  `dist/GameAutomationControlPlane` onedir directory. Use
+  `packaging/build_installer.ps1` to inject the version and
+  `packaging/installer_smoke_test.ps1` to prove install/uninstall behavior; do
+  not add Inno Setup to Python dependencies or bundle external automation
+  tools, runtimes, models, or game files.
+- The installer uses `PrivilegesRequired=lowest` and installs per-user, but the
+  existing `GameAutomationControlPlane.exe` manifest still requests
+  `requireAdministrator`. Keep this installer/runtime UAC distinction visible
+  in user documentation. Uninstall must never remove
+  `%LOCALAPPDATA%/GameAutomationControlPlane` or its SQLite data, logs, or
+  settings.
+- For a reproducible installer proof, obtain official Inno Setup 7.1.0 through
+  `packaging/install_inno_setup.ps1`, which checks the pinned SHA-256 and
+  Authenticode publisher before execution. Keep the portable ZIP and checksum
+  workflow unchanged alongside the installer artifacts.
 - Keep Actions permissions read-only. A release requires a successful Windows
-  package proof, its ZIP and SHA-256, and a verified license-material payload.
+  package proof, its ZIP and SHA-256, installer and installer SHA-256, and a
+  verified license-material payload.
 - Do not modify repository permissions, branch protection, or security settings
   as part of normal code or documentation work.
 
@@ -154,7 +172,16 @@ $env:QT_QPA_PLATFORM = "offscreen"
 python -m pytest
 .\packaging\build_windows.ps1 -PythonExecutable python
 .\packaging\smoke_test.ps1 -ExecutablePath .\dist\GameAutomationControlPlane\GameAutomationControlPlane.exe
+$iscc = & .\packaging\install_inno_setup.ps1 -InstallDirectory (Join-Path $env:TEMP "hsiesta-inno-setup-7.1.0")
+.\packaging\build_installer.ps1 -IsccPath $iscc
+.\packaging\installer_smoke_test.ps1 -InstallerPath .\dist\Hsiesta-0.1.18-Setup.exe
 ```
+
+If a non-interactive environment cannot run the installed executable because
+its existing manifest requests elevation, use the installer smoke script's
+`-SkipPackagedSmoke` option only after the standalone onedir smoke above has
+passed; install, payload, shortcut, uninstall, and user-data assertions still
+run.
 
 Use the narrowest relevant checks first, then run the full suite and packaging
 checks for release-facing changes. Report exactly what was verified and what

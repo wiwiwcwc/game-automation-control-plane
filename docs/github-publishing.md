@@ -5,7 +5,7 @@ AGPL-3.0-only. Keep the root `LICENSE` file in the first public commit and in
 every distributed Windows package.
 
 This document records the original first-publication workflow. The repository
-is public and the current source version is `v0.1.17`; use the steps below as a
+is public and the current source version is `v0.1.18`; use the steps below as a
 checklist for future releases, not as a request to recreate the repository.
 
 ## 1. Protect the commit email
@@ -84,8 +84,15 @@ the website instead; this repository already contains all three.
   needs write access.
 - Add repository topics such as `windows`, `pyside6`, `game-automation`, and
   `automation-dashboard`.
-- Create the first GitHub Release only after its Windows ZIP, checksum,
-  third-party notices, and clean-machine smoke test are verified together.
+- Create the first GitHub Release only after its Windows ZIP and SHA-256,
+  `Hsiesta-<version>-Setup.exe` installer and SHA-256, third-party notices, and
+  clean-machine install/uninstall smoke test are verified together. The
+  portable ZIP remains available for users who do not want an installed copy.
+- The installer is built from the already-proven
+  `dist\GameAutomationControlPlane` onedir output. Use
+  `packaging\install_inno_setup.ps1` to obtain the pinned official Inno Setup
+  7.1.0 compiler; it verifies the download hash and Authenticode publisher
+  before execution. Do not add Inno Setup to Python dependencies.
 
 Official references:
 

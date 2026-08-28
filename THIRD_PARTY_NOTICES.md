@@ -50,3 +50,17 @@ application is in this repository.
 The official Qt source archives are the authoritative source for component-level
 copyright and attribution notices. Only modules collected by PyInstaller are
 redistributed in the Windows package.
+
+## Inno Setup 7.1.0 installer components
+
+The `Hsiesta-<version>-Setup.exe` Windows installer is generated with the
+official Inno Setup 7.1.0 compiler and includes its installer/uninstaller
+components. The compiler itself is not included in the portable ZIP. Inno
+Setup credits Jordan Russell and portions by Martijn Laan; the official
+license permits use, modification, and redistribution subject to retaining its
+copyright, attribution, and source-origin notices.
+
+Official source and license:
+
+- https://github.com/jrsoftware/issrc/blob/is-7_1_0/license.txt
+- https://jrsoftware.org/isinfo.php

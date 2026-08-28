@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.17 implementation, not a promise about future
+This document describes the 0.1.18 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -190,6 +190,29 @@ days. It only accepts validated direct children of the configured runs root,
 preserves the latest failed run for each job, and leaves SQLite run metadata in
 place. Orphan directories are not removed.
 
+## Windows packaging and installation
+
+The PyInstaller onedir package remains the canonical application payload. The
+existing [`build_windows.ps1`](../packaging/build_windows.ps1) wrapper produces
+`dist\GameAutomationControlPlane`, and the portable ZIP workflow continues to
+publish that directory with its SHA-256 file. A separate
+[`hsiesta.iss`](../packaging/hsiesta.iss) Inno Setup layer consumes that already
+built directory; it does not rebuild Python, bundle an automation tool, or add
+game/runtime/model files. [`build_installer.ps1`](../packaging/build_installer.ps1)
+injects the version from `pyproject.toml` and refuses incomplete or contaminated
+onedir input.
+
+The installer uses the stable AppId
+`{57c41fc3-082e-4bf2-98ed-c6ac900d7211}`, installs per-user to
+`%LOCALAPPDATA%\Programs\Hsiesta`, and registers a per-user uninstaller. This
+installer layer has `PrivilegesRequired=lowest`; the installed
+`GameAutomationControlPlane.exe` still carries the existing
+`requireAdministrator` manifest, so installation privilege and application
+runtime privilege are intentionally different. Uninstall removes only files
+under the install directory and its shortcuts. It has no broad uninstall-delete
+rule and never removes `%LOCALAPPDATA%\GameAutomationControlPlane`, SQLite,
+logs, or settings.
+
 ## Historical non-goals for 0.1.0
 
 - End-to-end OK-WW execution or process-termination compatibility verification.
@@ -199,7 +222,7 @@ place. Orphan directories are not removed.
 - Process-tree termination, cancellation, or a stop button.
 - Parallel queue execution or persisted queue recovery.
 - Automatic verification or automatic daily completion.
-- Installer, updater, code signing, or release publication.
+- Updater, code signing, or release publication.
 
 ## Source map
 
@@ -216,3 +239,4 @@ place. Orphan directories are not removed.
 - App-data paths: [`platform/paths.py`](../src/game_control_plane/platform/paths.py)
 - Packaging entry point/spec: [`packaging/entrypoint.py`](../packaging/entrypoint.py), [`packaging/game_control_plane.spec`](../packaging/game_control_plane.spec)
 - Windows build wrapper and license placement: [`packaging/build_windows.ps1`](../packaging/build_windows.ps1)
+- Per-user installer source and build/smoke wrappers: [`packaging/hsiesta.iss`](../packaging/hsiesta.iss), [`packaging/build_installer.ps1`](../packaging/build_installer.ps1), and [`packaging/installer_smoke_test.ps1`](../packaging/installer_smoke_test.ps1)
