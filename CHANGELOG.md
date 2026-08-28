@@ -3,6 +3,15 @@
 All notable changes are recorded here. Version 0.1.13 is the first published
 release of the project.
 
+## [0.1.17] — 2026-08-28
+
+### Changed
+
+- Softened the bilingual homepage integration messaging and added a clear
+  note that more mobile-game daily tools will be added gradually.
+- Kept the existing package, executable, ZIP, and application-data identifiers
+  unchanged for compatibility.
+
 ## [0.1.16] — 2026-08-28
 
 ### Changed

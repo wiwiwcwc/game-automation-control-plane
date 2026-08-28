@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Hsiesta 版本
-      placeholder: 例如 0.1.16
+      placeholder: 例如 0.1.17
     validations:
       required: true
   - type: dropdown

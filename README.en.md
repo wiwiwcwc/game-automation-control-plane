@@ -13,9 +13,11 @@
 
 Hsiesta is a Windows desktop console that brings the mobile-game tools you already have installed into one task list, then starts them, tracks their status, and keeps their logs in one place.
 
+Support will expand gradually as each tool's launch, monitoring, and completion behavior is understood and tested.
+
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.16`.
+The current source version is `0.1.17`.
 
 ## Windows download
 
@@ -52,7 +54,7 @@ Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by
 | Zenless Zone Zero OneDragon | Zenless Zone Zero | Connects an installed RuntimeLauncher (preferred) or classic launcher and explicitly calls the one-dragon entry point, with optional instance and `-c` arguments |
 | Custom CLI | Other external scripts | Explicit interpreter/executable, arguments, working directory, output, and run history |
 
-The OneDragon integration connects only to a launcher that you have already installed. It does not download or bundle OneDragon, its runtime, models, or game files, and it does not imply support for other games. See [integration status](docs/integrations.md) before treating a behavior as verified.
+OneDragon currently supports Zenless Zone Zero; install and configure OneDragon before using it.
 
 <details>
 <summary>Verification boundaries and common questions</summary>

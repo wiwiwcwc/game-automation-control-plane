@@ -14,9 +14,11 @@
 
 休汐（Hsiesta）是一款面向 Windows 的手游日常控制台：把已经安装好的 MAA / maa-cli、MAA_Punish / FOS、OK-WW 和 OneDragon 等工具集中到一张任务清单里，统一启动、查看状态和回看日志。
 
+目前支持的工具仍在持续扩展；后续会在确认每个项目的启动、监控与完成判定方式后，逐步接入更多手游日常工具。
+
 休汐只负责编排外部工具，不是游戏客户端、图像识别引擎或通用机器人。它不会下载或捆绑第三方工具；进程正常退出，也不等于日常已经完成。
 
-当前源码版本为 `0.1.16`，具体支持范围和验证边界以项目文档为准。
+当前源码版本为 `0.1.17`，具体支持范围和验证边界以项目文档为准。
 
 ## Windows 下载
 
@@ -53,7 +55,7 @@
 | 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | 连接已安装的 RuntimeLauncher 或经典 Launcher，显式调用一条龙入口；可选账号实例和 `-c` |
 | Custom CLI | 其他外部脚本 | 明确的解释器 / 可执行文件、逐项参数、工作目录、输出和历史 |
 
-绝区零 OneDragon 适配器只连接用户已经安装的启动器，不下载或捆绑 OneDragon、运行时、模型或游戏文件；它也不是通用 OneDragon 适配器。需要接入新工具时，请先看 [集成状态](docs/integrations.md) 和根目录 [`AGENTS.md`](AGENTS.md)。
+OneDragon 目前支持绝区零版本，使用前需要先安装并配置对应的 OneDragon。
 
 <details>
 <summary>验证边界与常见问题</summary>
