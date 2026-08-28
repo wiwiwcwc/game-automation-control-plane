@@ -100,8 +100,10 @@ appropriate evidence boundary.
 For the focused Zenless Zone Zero OneDragon adapter, use only the official
 launcher contract `-o`, optional `-i` with comma-separated positive indices,
 and optional `-c`. Prefer `OneDragon-RuntimeLauncher.exe` and require adjacent
-`.runtime` and `src`; the classic launcher gets only the conservative adjacent
-`resources/config/project.yml` and `repository.yml` check. Do not read or
+`.runtime` and `src`; for the classic launcher, accept only one complete pair:
+`config/project.yml` and `config/repository.yml` from the official
+Full-Environment layout, or `resources/config/*.yml` as a compatibility
+layout. Do not mix the two layouts. Do not read or
 rewrite OneDragon YAML/account settings, infer an account allowlist, bundle its
 runtime/models/game files, follow an unverified worker, take over the game
 window, or force-stop by process name. Installed account existence and the

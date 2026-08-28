@@ -16,6 +16,8 @@ It connects existing tools such as **MAA / maa-cli (Arknights)**, **MAA_Punish /
 
 `v0.1.14` was released on 2026-08-28. This is an early-stage Windows-first PySide6 application for users who want a simpler way to run and review mobile-game daily scripts, and for developers building explicit launchers around existing tools.
 
+The current source version is `0.1.15`. For the classic OneDragon Full-Environment package, select the complete directory containing `OneDragon-Launcher.exe`, `config/project.yml`, and `config/repository.yml`; the complete `resources/config/*.yml` compatibility layout is also accepted. Do not move YAML files.
+
 ## What it is useful for
 
 - Store a per-game task with an explicit executable, argument list, and working directory.

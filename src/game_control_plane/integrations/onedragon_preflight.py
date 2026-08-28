@@ -145,30 +145,81 @@ def _layout_step(path: Path, kind: str) -> CheckStep:
             details=f"Runtime: {runtime}\nSource injection directory: {source}",
         )
 
+    direct_config = find_child_casefold(path.parent, "config", directory=True)
     resources = find_child_casefold(path.parent, "resources", directory=True)
-    config_root = find_child_casefold(resources, "config", directory=True) if resources else None
-    project = find_child_casefold(config_root, "project.yml", directory=False) if config_root else None
-    repository = find_child_casefold(config_root, "repository.yml", directory=False) if config_root else None
-    missing = [
-        name
-        for name, found in (("resources/config/project.yml", project), ("resources/config/repository.yml", repository))
-        if found is None
-    ]
-    if missing:
-        return CheckStep(
-            "layout",
-            "Installation layout",
-            CheckState.FAILED,
-            "The classic OneDragon package is missing " + ", ".join(missing) + ".",
-            "Choose the complete official OneDragon folder containing OneDragon-Launcher.exe and resources/config/*.yml.",
-            details=f"Launcher folder: {path.parent}",
+    resources_config = (
+        find_child_casefold(resources, "config", directory=True)
+        if resources
+        else None
+    )
+    candidates = (("config", direct_config), ("resources/config", resources_config))
+    checked_layouts: list[str] = []
+    for label, config_root in candidates:
+        project = (
+            find_child_casefold(config_root, "project.yml", directory=False)
+            if config_root
+            else None
         )
+        repository = (
+            find_child_casefold(config_root, "repository.yml", directory=False)
+            if config_root
+            else None
+        )
+        if project is not None and repository is not None:
+            if label == "config":
+                summary = (
+                    "The classic Full-Environment directory has "
+                    "config/project.yml and config/repository.yml."
+                )
+            else:
+                summary = (
+                    "The classic launcher has a complete "
+                    "resources/config compatibility layout."
+                )
+            return CheckStep(
+                "layout",
+                "Installation layout",
+                CheckState.PASSED,
+                summary,
+                details=(
+                    f"Config layout: {label}\n"
+                    f"Project config: {project}\n"
+                    f"Repository config: {repository}"
+                ),
+            )
+        missing = [
+            f"{label}/{name}"
+            for name, found in (
+                ("project.yml", project),
+                ("repository.yml", repository),
+            )
+            if found is None
+        ]
+        checked_layouts.append(
+            f"{label}: "
+            + ("config directory missing" if config_root is None else "missing " + ", ".join(missing))
+        )
+
     return CheckStep(
         "layout",
         "Installation layout",
-        CheckState.PASSED,
-        "The classic launcher has its bundled resources/config files.",
-        details=f"Project config: {project}\nRepository config: {repository}",
+        CheckState.FAILED,
+        (
+            "The classic OneDragon launcher needs one complete config pair: "
+            "config/project.yml + config/repository.yml (Full-Environment), "
+            "or resources/config/project.yml + resources/config/repository.yml "
+            "(compatibility layout)."
+        ),
+        (
+            "Choose the complete official OneDragon directory containing "
+            "OneDragon-Launcher.exe and either config/*.yml (Full-Environment) "
+            "or resources/config/*.yml. Do not move YAML files."
+        ),
+        details=(
+            f"Launcher folder: {path.parent}\n"
+            "Checked layout candidates:\n"
+            + "\n".join(checked_layouts)
+        ),
     )
 
 

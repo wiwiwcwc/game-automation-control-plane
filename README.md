@@ -17,6 +17,8 @@
 
 `v0.1.14` 已于 2026-08-28 发布。项目仍处于早期阶段，适合希望少开几个窗口、集中管理手游日常脚本，或想在 Windows 上开发外部工具编排器的用户。
 
+当前源码版本为 `0.1.15`。经典 OneDragon Full-Environment 请直接选择包含 `OneDragon-Launcher.exe`、`config/project.yml` 和 `config/repository.yml` 的完整目录；兼容的 `resources/config/*.yml` 布局也可用，不要移动 YAML 文件。
+
 ## 你会得到什么
 
 - 按游戏保存任务：可编辑可执行文件、参数和工作目录，适合 Custom CLI 及已支持的自动化工具。

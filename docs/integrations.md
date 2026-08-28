@@ -307,10 +307,13 @@ search arbitrary process names, or inspect uninstall metadata.
 
 For RuntimeLauncher, the selected executable's parent must contain adjacent
 `.runtime` and `src` directories, matching the upstream package layout. For
-the classic launcher, the conservative check requires the adjacent
-`resources/config/project.yml` and `resources/config/repository.yml` files
-described by the upstream packaging spec. The preflight constructs an explicit
-argument list and working directory but never starts the game or launcher.
+the classic launcher, the check accepts either the official Full-Environment
+root pair `config/project.yml` and `config/repository.yml`, or the complete
+`resources/config/project.yml` and `resources/config/repository.yml`
+compatibility layout. It never combines one file from each layout, reads YAML
+contents, or asks the user to move YAML files. The preflight constructs an
+explicit argument list and working directory but never starts the game or
+launcher.
 
 ### Result and safety boundary
 

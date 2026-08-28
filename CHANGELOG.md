@@ -3,6 +3,17 @@
 All notable changes are recorded here. Version 0.1.13 is the first published
 release of the project.
 
+## [0.1.15] — 2026-08-28
+
+### Fixed
+
+- Fixed classic `OneDragon-Launcher.exe` preflight to accept the official
+  Full-Environment root `config/project.yml` and `config/repository.yml`
+  layout, while retaining the complete `resources/config` compatibility
+  layout.
+- Updated bilingual guidance to select a complete official directory instead
+  of moving OneDragon YAML files.
+
 ## [0.1.14] — 2026-08-28
 
 ### Added

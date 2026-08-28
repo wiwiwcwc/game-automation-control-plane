@@ -7,6 +7,7 @@ from game_control_plane.domain.models import DailyStatus, RunState
 from game_control_plane.ui.dashboard import Dashboard
 from game_control_plane.ui.i18n import (
     LanguageManager,
+    onedragon_preflight_message_text,
     preflight_progress_text,
     state_text,
 )
@@ -117,3 +118,24 @@ def test_onedragon_progress_and_game_text_are_localized():
     assert onedragon_preflight_progress_text(
         manager, "Preparing the OneDragon launch contract…"
     ) == "Preparing the OneDragon launch contract…"
+
+
+def test_onedragon_layout_messages_are_localized():
+    missing = (
+        "The classic OneDragon launcher needs one complete config pair: "
+        "config/project.yml + config/repository.yml (Full-Environment), or "
+        "resources/config/project.yml + resources/config/repository.yml "
+        "(compatibility layout)."
+    )
+    next_action = (
+        "Choose the complete official OneDragon directory containing "
+        "OneDragon-Launcher.exe and either config/*.yml (Full-Environment) "
+        "or resources/config/*.yml. Do not move YAML files."
+    )
+
+    zh = LanguageManager("zh_CN", persist=False)
+    en = LanguageManager("en_US", persist=False)
+    assert onedragon_preflight_message_text(zh, missing).startswith("经典 OneDragon")
+    assert "请选择" in onedragon_preflight_message_text(zh, next_action)
+    assert onedragon_preflight_message_text(en, missing) == missing
+    assert onedragon_preflight_message_text(en, next_action) == next_action

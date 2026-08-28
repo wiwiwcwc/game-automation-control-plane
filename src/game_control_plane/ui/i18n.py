@@ -186,6 +186,10 @@ _ZH_CN = {
     "onedragon_preflight.progress.layout": "正在检查 OneDragon 安装目录…",
     "onedragon_preflight.progress.accounts": "正在检查 OneDragon 账号实例…",
     "onedragon_preflight.progress.launch": "正在准备 OneDragon 启动接口…",
+    "onedragon_preflight.layout.full_passed": "经典 Full-Environment 目录已包含 config/project.yml 和 config/repository.yml。",
+    "onedragon_preflight.layout.resources_passed": "经典启动器的 resources/config 兼容目录完整。",
+    "onedragon_preflight.layout.missing": "经典 OneDragon 启动器需要一套完整配置：Full-Environment 的 config/project.yml + config/repository.yml，或兼容布局的 resources/config/project.yml + resources/config/repository.yml。",
+    "onedragon_preflight.layout.next": "请选择同时包含 OneDragon-Launcher.exe 和完整 config/*.yml（Full-Environment）或 resources/config/*.yml 的官方目录；不要移动 YAML 文件。",
     "preflight.all_passed": "全部检查通过，MAA 已可以运行。",
     "preflight.next_step": "下一步",
     "preflight.show_details": "显示技术详情",
@@ -414,6 +418,10 @@ _EN_US = {
     "onedragon_preflight.progress.layout": "Checking the OneDragon installation layout…",
     "onedragon_preflight.progress.accounts": "Checking OneDragon account instances…",
     "onedragon_preflight.progress.launch": "Preparing the OneDragon launch contract…",
+    "onedragon_preflight.layout.full_passed": "The classic Full-Environment directory has config/project.yml and config/repository.yml.",
+    "onedragon_preflight.layout.resources_passed": "The classic launcher has a complete resources/config compatibility layout.",
+    "onedragon_preflight.layout.missing": "The classic OneDragon launcher needs one complete config pair: config/project.yml + config/repository.yml (Full-Environment), or resources/config/project.yml + resources/config/repository.yml (compatibility layout).",
+    "onedragon_preflight.layout.next": "Choose the complete official OneDragon directory containing OneDragon-Launcher.exe and either config/*.yml (Full-Environment) or resources/config/*.yml. Do not move YAML files.",
     "preflight.all_passed": "All checks passed. MAA is ready to run.",
     "preflight.next_step": "Next step",
     "preflight.show_details": "Show details",
@@ -587,12 +595,23 @@ def onedragon_preflight_progress_text(manager: LanguageManager, message: str) ->
     return manager.text(exact[message]) if message in exact else message
 
 
+def onedragon_preflight_message_text(manager: LanguageManager, message: str) -> str:
+    exact = {
+        "The classic Full-Environment directory has config/project.yml and config/repository.yml.": "onedragon_preflight.layout.full_passed",
+        "The classic launcher has a complete resources/config compatibility layout.": "onedragon_preflight.layout.resources_passed",
+        "The classic OneDragon launcher needs one complete config pair: config/project.yml + config/repository.yml (Full-Environment), or resources/config/project.yml + resources/config/repository.yml (compatibility layout).": "onedragon_preflight.layout.missing",
+        "Choose the complete official OneDragon directory containing OneDragon-Launcher.exe and either config/*.yml (Full-Environment) or resources/config/*.yml. Do not move YAML files.": "onedragon_preflight.layout.next",
+    }
+    return manager.text(exact[message]) if message in exact else message
+
+
 __all__ = [
     "DEFAULT_LANGUAGE",
     "LanguageManager",
     "SUPPORTED_LANGUAGES",
     "game_text",
     "fos_preflight_progress_text",
+    "onedragon_preflight_message_text",
     "onedragon_preflight_progress_text",
     "preflight_progress_text",
     "state_text",

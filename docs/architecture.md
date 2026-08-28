@@ -87,8 +87,10 @@ for diagnosis.
 
 The focused `zzz_onedragon` integration requires the exact
 `OneDragon-RuntimeLauncher.exe` or `OneDragon-Launcher.exe` name. Runtime
-preflight checks adjacent `.runtime` and `src`; classic preflight checks the
-conservative `resources/config/project.yml` and `repository.yml` layout. Its
+preflight checks adjacent `.runtime` and `src`; classic preflight accepts either
+the complete Full-Environment `config/project.yml` and `repository.yml` pair
+or the complete `resources/config/project.yml` and `repository.yml`
+compatibility layout, without mixing or reading YAML contents. Its
 launch specification is the upstream explicit `-o`, optional `-i <indices>`,
 and optional `-c`, with the launcher parent as working directory. There is no
 trusted external completion signal, so a clean OneDragon exit is finalized as

@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..integrations.maa_preflight import CheckState, MaaPreflightReport
-from .i18n import LanguageManager
+from .i18n import LanguageManager, onedragon_preflight_message_text
 
 
 class MaaPreflightDialog(QDialog):
@@ -123,15 +123,25 @@ class MaaPreflightDialog(QDialog):
             state_label.setText(marker)
             state_label.setStyleSheet(f"font-weight: 700; color: {color};")
             title = self.i18n.text(f"{self.prefix}.step.{step.key}")
-            text_label.setText(f"<b>{title}</b><br>{step.summary}")
+            summary = (
+                onedragon_preflight_message_text(self.i18n, step.summary)
+                if self.report.kind == "onedragon"
+                else step.summary
+            )
+            text_label.setText(f"<b>{title}</b><br>{summary}")
 
         failed = self.report.failed_step
         if failed is None:
             self.action_label.setText(self.i18n.text(f"{self.prefix}.all_passed"))
             details = "\n\n".join(step.details for step in self.report.steps if step.details)
         else:
+            next_action = (
+                onedragon_preflight_message_text(self.i18n, failed.next_action)
+                if self.report.kind == "onedragon"
+                else failed.next_action
+            )
             self.action_label.setText(
-                f"<b>{self.i18n.text('preflight.next_step')}</b><br>{failed.next_action}"
+                f"<b>{self.i18n.text('preflight.next_step')}</b><br>{next_action}"
             )
             details = failed.details
         self.details.setPlainText(details)
