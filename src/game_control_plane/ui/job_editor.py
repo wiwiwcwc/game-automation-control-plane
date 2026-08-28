@@ -48,6 +48,12 @@ from ..integrations.maa_managed_task import (
     default_managed_daily,
 )
 from ..integrations.ok_ww import OkWwIntegration, discover_ok_ww
+from ..integrations.onedragon import (
+    ZZZ_ONEDRAGON_RUNNER_TYPE,
+    ZzzOneDragonIntegration,
+    discover_zzz_onedragon,
+    format_instance_indices,
+)
 from .i18n import LanguageManager
 
 
@@ -78,6 +84,10 @@ class JobEditorDialog(QDialog):
         self.integration_combo.addItem("MAA", MaaCliIntegration.runner_type)
         self.integration_combo.addItem("MAA_Punish", MaaPunishIntegration.runner_type)
         self.integration_combo.addItem("OK-WW", OkWwIntegration.runner_type)
+        self.integration_combo.addItem(
+            self.i18n.text("job.integration_zzz_onedragon"),
+            ZZZ_ONEDRAGON_RUNNER_TYPE,
+        )
         self.integration_combo.currentIndexChanged.connect(self._on_integration_changed)
 
         self.executable_path = QLineEdit()
@@ -211,6 +221,16 @@ class JobEditorDialog(QDialog):
             self.i18n.text("job.close_wuthering")
         )
         self.close_game_after_run.setChecked(True)
+        self.onedragon_instance_indices = QLineEdit()
+        self.onedragon_instance_indices.setPlaceholderText(
+            self.i18n.text("job.placeholder_zzz_instance")
+        )
+        self.onedragon_close_game = QCheckBox(self.i18n.text("job.zzz_close"))
+        self.onedragon_close_game.setChecked(False)
+        # Keep explicit aliases for callers/tests that use the game-specific
+        # naming while the persisted schema remains integration-neutral.
+        self.zzz_instance_indices = self.onedragon_instance_indices
+        self.zzz_close_game_after_run = self.onedragon_close_game
 
         self.working_directory = QLineEdit()
         self.working_directory.setPlaceholderText(self.i18n.text("job.placeholder_working"))
@@ -240,6 +260,8 @@ class JobEditorDialog(QDialog):
         self.emulator_timeout_label = QLabel(self.i18n.text("job.startup_timeout"))
         self.task_index_label = QLabel(self.i18n.text("job.okww_index"))
         self.close_game_label = QLabel(self.i18n.text("job.after_okww"))
+        self.onedragon_instance_label = QLabel(self.i18n.text("job.zzz_instance"))
+        self.onedragon_close_game_label = QLabel(self.i18n.text("job.zzz_close"))
 
         basic_group = QGroupBox(self.i18n.text("job.section_basic"))
         basic_form = QFormLayout(basic_group)
@@ -264,6 +286,8 @@ class JobEditorDialog(QDialog):
         form.addRow(self.emulator_timeout_label, self.emulator_start_timeout)
         form.addRow(self.task_index_label, self.task_index)
         form.addRow(self.close_game_label, self.close_game_after_run)
+        form.addRow(self.onedragon_instance_label, self.onedragon_instance_indices)
+        form.addRow(self.onedragon_close_game_label, self.onedragon_close_game)
         form.addRow(self.arguments_label, self.arguments)
         form.addRow(self.working_label, self.working_container)
 
@@ -358,6 +382,8 @@ class JobEditorDialog(QDialog):
         if isinstance(task_index, int) and not isinstance(task_index, bool) and task_index > 0:
             self.task_index.setValue(task_index)
         self.close_game_after_run.setChecked(bool(config.get("close_game_after_run", True)))
+        self.onedragon_instance_indices.setText(str(config.get("instance_indices", "")))
+        self.onedragon_close_game.setChecked(bool(config.get("close_game_after_run", False)))
         arguments = config.get("arguments", [])
         self.arguments.setPlainText("\n".join(str(item) for item in arguments))
         self.working_directory.setText(str(config.get("working_directory") or ""))
@@ -365,9 +391,12 @@ class JobEditorDialog(QDialog):
         self.reset_time.setTime(QTime(job.reset_minute // 60, job.reset_minute % 60))
 
     def _browse_executable(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self, self.i18n.text("job.choose_executable")
+        chooser_key = (
+            "job.choose_zzz"
+            if self.integration_combo.currentData() == ZZZ_ONEDRAGON_RUNNER_TYPE
+            else "job.choose_executable"
         )
+        path, _ = QFileDialog.getOpenFileName(self, self.i18n.text(chooser_key))
         if path:
             self.executable_path.setText(path)
             if self.integration_combo.currentData() == MaaPunishIntegration.runner_type:
@@ -392,6 +421,7 @@ class JobEditorDialog(QDialog):
         is_maa = runner_type == MaaCliIntegration.runner_type
         is_fos = runner_type == MaaPunishIntegration.runner_type
         is_ok_ww = runner_type == OkWwIntegration.runner_type
+        is_onedragon = runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE
         self.auto_start_emulator.setEnabled(True)
         self.maa_task_mode_label.setVisible(is_maa)
         self.maa_task_mode.setVisible(is_maa)
@@ -405,10 +435,15 @@ class JobEditorDialog(QDialog):
         self.task_index.setVisible(is_ok_ww)
         self.close_game_label.setVisible(is_ok_ww)
         self.close_game_after_run.setVisible(is_ok_ww)
-        self.arguments_label.setVisible(not (is_maa or is_fos or is_ok_ww))
-        self.arguments.setVisible(not (is_maa or is_fos or is_ok_ww))
-        self.working_label.setVisible(not (is_maa or is_fos or is_ok_ww))
-        self.working_container.setVisible(not (is_maa or is_fos or is_ok_ww))
+        self.onedragon_instance_label.setVisible(is_onedragon)
+        self.onedragon_instance_indices.setVisible(is_onedragon)
+        self.onedragon_close_game_label.setVisible(is_onedragon)
+        self.onedragon_close_game.setVisible(is_onedragon)
+        specialized = is_maa or is_fos or is_ok_ww or is_onedragon
+        self.arguments_label.setVisible(not specialized)
+        self.arguments.setVisible(not specialized)
+        self.working_label.setVisible(not specialized)
+        self.working_container.setVisible(not specialized)
         if is_maa:
             self.executable_label.setText(self.i18n.text("job.maa_executable"))
             self.executable_path.setPlaceholderText(self.i18n.text("job.placeholder_executable"))
@@ -442,6 +477,16 @@ class JobEditorDialog(QDialog):
             self.help_label.setText(self.i18n.text("job.help_okww"))
             if self.job is None or self.job.runner_type != OkWwIntegration.runner_type:
                 discovered = discover_ok_ww()
+                if discovered:
+                    self.executable_path.setText(discovered)
+        elif is_onedragon:
+            self.executable_label.setText(self.i18n.text("job.zzz_executable"))
+            self.executable_path.setPlaceholderText(self.i18n.text("job.placeholder_zzz_executable"))
+            self.game_name.setText(self.i18n.text("game.zzz"))
+            self.game_name.setReadOnly(True)
+            self.help_label.setText(self.i18n.text("job.help_zzz"))
+            if self.job is None or self.job.runner_type != ZZZ_ONEDRAGON_RUNNER_TYPE:
+                discovered = discover_zzz_onedragon()
                 if discovered:
                     self.executable_path.setText(discovered)
         else:
@@ -684,6 +729,26 @@ class JobEditorDialog(QDialog):
                 "close_game_after_run": self.close_game_after_run.isChecked(),
             }
             validation = OkWwIntegration().validate_config(config)
+        elif runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
+            game_name = (
+                self.job.game_name
+                if self.job is not None and self.job.runner_type == runner_type
+                else self.i18n.text("game.zzz")
+            )
+            instance_value = self.onedragon_instance_indices.text().strip()
+            try:
+                instance_value = format_instance_indices(instance_value)
+            except ValueError:
+                # Let the adapter return the same clear validation error while
+                # preserving the user's raw input in the form.
+                pass
+            config = {
+                "config_version": ZzzOneDragonIntegration.config_version,
+                "executable_path": executable_path,
+                "instance_indices": instance_value,
+                "close_game_after_run": self.onedragon_close_game.isChecked(),
+            }
+            validation = ZzzOneDragonIntegration().validate_config(config)
         else:
             config = {
                 "config_version": CustomCliIntegration.config_version,

@@ -67,6 +67,7 @@ def test_new_integration_jobs_use_chinese_game_names_by_default(monkeypatch):
     monkeypatch.setattr(job_editor, "discover_mumu_cli", lambda: None)
     monkeypatch.setattr(job_editor, "discover_ok_ww", lambda: None)
     monkeypatch.setattr(job_editor, "discover_fos", lambda: None)
+    monkeypatch.setattr(job_editor, "discover_zzz_onedragon", lambda: None)
     manager = LanguageManager("zh_CN", persist=False)
     dialog = JobEditorDialog(i18n=manager)
     dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("maa_cli"))
@@ -75,6 +76,9 @@ def test_new_integration_jobs_use_chinese_game_names_by_default(monkeypatch):
     assert dialog.game_name.text() == "鸣潮"
     dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("maa_punish"))
     assert dialog.game_name.text() == "战双帕弥什"
+    dialog.integration_combo.setCurrentIndex(dialog.integration_combo.findData("zzz_onedragon"))
+    assert dialog.game_name.text() == "绝区零"
+    assert dialog.onedragon_close_game.text() == "完成后由 OneDragon 关闭绝区零"
     dialog.close()
 
 
@@ -100,3 +104,16 @@ def test_mumu_progress_is_localized_without_changing_unknown_technical_text():
         "Waiting for MuMu instance 1 to connect to ADB… 8/120 seconds",
     ) == "正在等待 MuMu 实例 1 连接 ADB… 8/120 秒"
     assert preflight_progress_text(manager, "raw third-party message") == "raw third-party message"
+
+
+def test_onedragon_progress_and_game_text_are_localized():
+    from game_control_plane.ui.i18n import (
+        game_text,
+        onedragon_preflight_progress_text,
+    )
+
+    manager = LanguageManager("en_US", persist=False)
+    assert game_text(manager, "ignored", "zzz_onedragon") == "Zenless Zone Zero"
+    assert onedragon_preflight_progress_text(
+        manager, "Preparing the OneDragon launch contract…"
+    ) == "Preparing the OneDragon launch contract…"

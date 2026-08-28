@@ -4,6 +4,7 @@ from .base import Integration
 from .custom_cli import CustomCliIntegration
 from .maa_cli import MaaCliIntegration
 from .maa_punish import MaaPunishIntegration
+from .onedragon import ZzzOneDragonIntegration
 from .ok_ww import OkWwIntegration
 
 
@@ -12,6 +13,7 @@ INTEGRATION_LABELS = {
     "maa_cli": "MAA",
     "maa_punish": "MAA_Punish",
     "ok_ww": "OK-WW",
+    "zzz_onedragon": "绝区零 OneDragon",
 }
 
 
@@ -23,6 +25,7 @@ class IntegrationRegistry:
                 MaaCliIntegration(),
                 MaaPunishIntegration(),
                 OkWwIntegration(),
+                ZzzOneDragonIntegration(),
             ]
             if integrations is None
             else integrations

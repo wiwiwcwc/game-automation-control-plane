@@ -6,7 +6,13 @@ from PySide6.QtWidgets import QProgressDialog, QWidget
 
 from ..integrations.maa_preflight import MaaPreflightReport, run_maa_preflight
 from ..integrations.fos_preflight import run_fos_preflight
-from .i18n import LanguageManager, fos_preflight_progress_text, preflight_progress_text
+from ..integrations.onedragon_preflight import run_onedragon_preflight
+from .i18n import (
+    LanguageManager,
+    fos_preflight_progress_text,
+    onedragon_preflight_progress_text,
+    preflight_progress_text,
+)
 
 
 class _MaaPreflightWorker(QObject):
@@ -22,7 +28,10 @@ class _MaaPreflightWorker(QObject):
     @Slot()
     def run(self) -> None:
         try:
-            check = run_fos_preflight if self.kind == "fos" else run_maa_preflight
+            check = {
+                "fos": run_fos_preflight,
+                "onedragon": run_onedragon_preflight,
+            }.get(self.kind, run_maa_preflight)
             report = check(self.config, progress=self.progress.emit)
         except Exception as exc:  # pragma: no cover - defensive thread boundary
             self.failed.emit(str(exc) or "The setup check failed unexpectedly.")
@@ -72,7 +81,10 @@ class _MaaPreflightController(QObject):
 
     @Slot(str)
     def progress(self, message: str) -> None:
-        translate = fos_preflight_progress_text if self.kind == "fos" else preflight_progress_text
+        translate = {
+            "fos": fos_preflight_progress_text,
+            "onedragon": onedragon_preflight_progress_text,
+        }.get(self.kind, preflight_progress_text)
         self.dialog.setLabelText(translate(self.i18n, message))
 
     @Slot(object)
@@ -98,7 +110,10 @@ def run_preflight_with_progress(
 
     language = i18n or LanguageManager(persist=False)
     dialog = _MaaProgressDialog(parent, language)
-    prefix = "fos_preflight" if kind == "fos" else "preflight"
+    prefix = {
+        "fos": "fos_preflight",
+        "onedragon": "onedragon_preflight",
+    }.get(kind, "preflight")
     dialog.setLabelText(language.text(f"{prefix}.checking"))
     dialog.setWindowTitle(language.text(f"{prefix}.progress_title"))
     dialog.setWindowModality(Qt.WindowModality.WindowModal)

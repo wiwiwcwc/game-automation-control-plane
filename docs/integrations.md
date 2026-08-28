@@ -16,7 +16,7 @@ This page distinguishes two kinds of evidence:
 | MAA GUI / `maa-cli` | Managed daily-task editor, result audit, and MuMu ownership-aware startup/cleanup; live full daily unverified | A locally generated managed task passes `run control_plane_daily_job_2 --batch --dry-run` with all six task groups. Tests cover generation, current Fight parameters, incomplete-result detection, and cleanup suppression. |
 | MAA_Punish / FOS | Guided saved-config launch, log-based completion, and optional exact-process cleanup; live task observed | A live FOS task reached the complete-success evidence sequence and ownership-based MuMu shutdown. Tests cover command handoff, exact FOS cleanup, cleanup failure, fresh-log evidence, and emulator ownership. |
 | OK-WW | Locally verified launcher handoff and close-option wiring | This repository validates an explicit executable and positive task index, builds `-t <index>` with optional `-e`, and follows the Windows launcher to its direct `pythonw.exe`/`python.exe` worker inside the same OK-WW installation. |
-| OneDragon | Not implemented and unverified | The upstream project is available for independent reference; this repository has no OneDragon adapter or compatibility test. |
+| Zenless Zone Zero OneDragon | Launcher adapter and conservative preflight; live game unverified | Local tests cover launcher discovery, Runtime/classic layouts, explicit arguments, editor round-trip, and exit-0 review semantics. The installed upstream version, account existence, and full daily flow still need user-side verification. |
 
 ## Custom CLI — supported
 
@@ -259,12 +259,69 @@ is the primary reference for the documented CLI contract. Its current README
 and release state are evidence about upstream behavior, not proof that the
 local executable or game client will complete a task successfully.
 
-## OneDragon — not implemented and unverified
+## Zenless Zone Zero OneDragon — launcher adapter, live game unverified
 
-The [OneDragon upstream repository](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon)
-is linked only as upstream context. No OneDragon executable, command contract,
-or version compatibility has been verified by this project, and no adapter is
-registered.
+This release adds a focused adapter for **Zenless Zone Zero OneDragon**. It is
+not a generic OneDragon integration and does not claim support for other games.
+The adapter connects to an existing installation only; it never downloads or
+bundles OneDragon, its embedded runtime, models, game files, or user account
+configuration. No OneDragon YAML is read or rewritten, and no account allowlist
+is inferred locally.
+
+### Upstream contract used by this adapter
+
+The upstream source consulted on 2026-08-28 was the `main` branch of the
+[official ZenlessZoneZero-OneDragon repository](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon).
+The local adapter schema is version `1`; no exact installed OneDragon build was
+available for this repository's release, so the real installed version remains
+an explicit user-side verification boundary.
+
+The official launcher sources document these arguments:
+
+```text
+OneDragon-RuntimeLauncher.exe -o [-i 1,2] [-c]
+OneDragon-Launcher.exe        -o [-i 1,2] [-c]
+```
+
+`-o` selects the OneDragon application entry point. `-i` accepts a
+comma-separated list of positive account-instance indices; leaving it blank
+lets OneDragon use its `active_in_od` account. The editor rejects non-numeric,
+zero, negative, empty, and duplicate entries, then passes normalized values to
+the launcher. Whether an index exists is left to OneDragon. `-c` asks
+OneDragon itself to close the game internally after it finishes.
+
+The primary references are the upstream
+[launcher base argument parser](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/src/one_dragon/launcher/launcher_base.py),
+[executable launcher](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/src/one_dragon/launcher/exe_launcher.py),
+[runtime launcher](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/src/zzz_od/win_exe/runtime_launcher.py),
+[classic launcher](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/src/zzz_od/win_exe/launcher.py),
+and [RuntimeLauncher layout notes](https://github.com/OneDragon-Anything/ZenlessZoneZero-OneDragon/blob/main/docs/develop/one_dragon/runtime_launcher.md).
+
+### Discovery and preflight boundary
+
+Discovery checks PATH, the explicit `ZZZ_ONEDRAGON_EXECUTABLE` environment
+variable, and a small set of common Desktop/Downloads/Start Menu locations.
+It prefers the exact `OneDragon-RuntimeLauncher.exe` name and falls back to
+the exact `OneDragon-Launcher.exe` name. It does not scan an entire drive,
+search arbitrary process names, or inspect uninstall metadata.
+
+For RuntimeLauncher, the selected executable's parent must contain adjacent
+`.runtime` and `src` directories, matching the upstream package layout. For
+the classic launcher, the conservative check requires the adjacent
+`resources/config/project.yml` and `resources/config/repository.yml` files
+described by the upstream packaging spec. The preflight constructs an explicit
+argument list and working directory but never starts the game or launcher.
+
+### Result and safety boundary
+
+OneDragon has no reliable external completion protocol that this release can
+audit. A clean launcher exit therefore becomes `needs_attention`, retains
+stdout/stderr, and never writes `DailyCompletion`; the user must review the
+OneDragon log and use **Mark completed** if the in-game daily really finished.
+The adapter does not follow an asynchronous worker, force-stop by process name,
+close the game itself, take over the game window, or modify OneDragon YAML and
+account settings. The complete live ZZZ daily flow and behavior of every
+installed OneDragon version remain unverified.
 
 ## Evidence required for future integration work
 

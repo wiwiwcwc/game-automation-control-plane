@@ -121,4 +121,4 @@ def test_mumu_discovery_uses_supported_cli(monkeypatch, tmp_path: Path):
 def test_default_registry_registers_maa_cli():
     registry = default_registry()
     assert registry.get("maa_cli").display_name == "MAA"
-    assert registry.types() == ("custom_cli", "maa_cli", "maa_punish", "ok_ww")
+    assert registry.types() == ("custom_cli", "maa_cli", "maa_punish", "ok_ww", "zzz_onedragon")

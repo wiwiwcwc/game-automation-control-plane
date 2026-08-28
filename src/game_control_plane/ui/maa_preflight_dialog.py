@@ -35,7 +35,10 @@ class MaaPreflightDialog(QDialog):
         self.report = report
         self.check_again = check_again
         self.edit_requested = False
-        self.prefix = "fos_preflight" if report.kind == "fos" else "preflight"
+        self.prefix = {
+            "fos": "fos_preflight",
+            "onedragon": "onedragon_preflight",
+        }.get(report.kind, "preflight")
         self.setWindowTitle(self.i18n.text(f"{self.prefix}.title"))
         self.setModal(True)
         self.resize(720, 470)

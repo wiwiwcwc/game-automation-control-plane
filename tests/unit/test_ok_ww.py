@@ -122,4 +122,4 @@ def test_shortcut_target_discovery_requires_existing_ok_ww_file(tmp_path: Path, 
 def test_default_registry_registers_ok_ww():
     registry = default_registry()
     assert registry.get("ok_ww").display_name == "OK-WW"
-    assert registry.types() == ("custom_cli", "maa_cli", "maa_punish", "ok_ww")
+    assert registry.types() == ("custom_cli", "maa_cli", "maa_punish", "ok_ww", "zzz_onedragon")

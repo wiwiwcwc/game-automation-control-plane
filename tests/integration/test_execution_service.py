@@ -207,6 +207,64 @@ class SleepingMaaIntegration:
         )
 
 
+class FixtureOneDragonIntegration:
+    runner_type = "zzz_onedragon"
+    display_name = "ZZZ OneDragon fixture"
+    config_version = 1
+
+    def __init__(self, fixture: Path):
+        self.fixture = fixture
+
+    def validate_config(self, _config):
+        return ValidationResult.ok()
+
+    def build_launch_spec(self, _job):
+        return LaunchSpec(
+            executable=sys.executable,
+            arguments=(str(self.fixture), "--mode", "success"),
+            working_directory=str(self.fixture.parent),
+            display_command="OneDragon-RuntimeLauncher.exe -o",
+        )
+
+
+def test_onedragon_clean_exit_needs_manual_completion_review(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([FixtureOneDragonIntegration(fixture)]),
+    )
+    job_id = store.save_job(
+        game_name="Zenless Zone Zero",
+        name="ZZZ daily",
+        runner_type="zzz_onedragon",
+        runner_config_version=1,
+        runner_config={"config_version": 1},
+        timezone_id="UTC",
+        reset_minute=240,
+    )
+    job = store.get_job(job_id)
+    assert job is not None
+    app_instance()
+    loop = QEventLoop()
+    service.run_finished.connect(loop.quit)
+
+    run = service.start(job)
+    QTimer.singleShot(5_000, loop.quit)
+    loop.exec()
+
+    finished = store.get_run(run.id)
+    assert finished is not None
+    assert finished.state == RunState.NEEDS_ATTENTION
+    assert finished.exit_code == 0
+    assert finished.error_kind == "automation_incomplete"
+    assert "cannot verify" in (finished.error_summary or "")
+    assert "manually" in (finished.error_summary or "")
+    assert store.daily_status(job) == DailyStatus.PENDING
+    assert "[Control Plane]" in Path(finished.stderr_path).read_text(encoding="utf-8")
+
+
 class FakeEmulatorWatchdog(QObject):
     lost = Signal(str)
 

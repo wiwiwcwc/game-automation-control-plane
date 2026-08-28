@@ -33,7 +33,8 @@ Keep those values aligned and update `CHANGELOG.md` for user-visible changes.
 - `src/game_control_plane/application/`: execution, queueing, process handoff,
   emulator watchdog, result audit, and post-run actions.
 - `src/game_control_plane/integrations/`: explicit contracts for Custom CLI,
-  MAA/maa-cli, MAA_Punish/FOS, and OK-WW.
+  MAA/maa-cli, MAA_Punish/FOS, OK-WW, and the focused Zenless Zone Zero
+  OneDragon launcher.
 - `src/game_control_plane/domain/`: job/run models and daily-cycle semantics.
 - `src/game_control_plane/persistence/`: SQLite store and numbered migrations.
 - `src/game_control_plane/platform/`: application data paths, logging, and
@@ -51,8 +52,9 @@ Keep those values aligned and update `CHANGELOG.md` for user-visible changes.
 - Keep `QProcess` and other run monitoring non-blocking on the GUI thread.
 - A process exit code of zero is not automatically a verified game success.
   Managed MAA requires complete task evidence and at least one real battle;
-  FOS requires the complete task-flow markers. Preserve diagnostics when a run
-  needs attention.
+  FOS requires the complete task-flow markers; OneDragon has no trusted
+  completion protocol and always needs manual review after a clean exit.
+  Preserve diagnostics when a run needs attention.
 - Keep execution result separate from the user's manual `DailyCompletion`.
   A successful run must not silently mark a daily complete.
 
@@ -94,6 +96,16 @@ Do not bundle third-party tools, DLLs, game assets, or external repositories.
 Do not invent an upstream contract from a name or a screenshot. Do not claim a
 live game workflow is verified unless it has been run and recorded in the
 appropriate evidence boundary.
+
+For the focused Zenless Zone Zero OneDragon adapter, use only the official
+launcher contract `-o`, optional `-i` with comma-separated positive indices,
+and optional `-c`. Prefer `OneDragon-RuntimeLauncher.exe` and require adjacent
+`.runtime` and `src`; the classic launcher gets only the conservative adjacent
+`resources/config/project.yml` and `repository.yml` check. Do not read or
+rewrite OneDragon YAML/account settings, infer an account allowlist, bundle its
+runtime/models/game files, follow an unverified worker, take over the game
+window, or force-stop by process name. Installed account existence and the
+actual ZZZ daily flow remain user-side verification boundaries.
 
 ### Data, configuration, and security
 

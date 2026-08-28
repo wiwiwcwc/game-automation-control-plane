@@ -12,6 +12,7 @@ from ..application.post_run_actions import mumu_resource_key
 from ..domain.models import DailyStatus
 from ..integrations.maa_cli import MAA_CLI_RUNNER_TYPE
 from ..integrations.maa_punish import MAA_PUNISH_RUNNER_TYPE
+from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
 from ..persistence.database import Database
 from ..persistence.store import Store
 from ..platform.log_retention import prune_run_logs
@@ -191,6 +192,10 @@ class MainWindow(QMainWindow):
             runtime_context = {
                 "emulator_started_by_control_plane": report.emulator_started,
             }
+        elif job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
+            report = self._onedragon_preflight_report(job)
+            if report is None:
+                return
         try:
             self.execution.start(job, runtime_context=runtime_context)
         except Exception as exc:
@@ -225,6 +230,10 @@ class MainWindow(QMainWindow):
                 runtime_contexts[int(job.id)] = {
                     "emulator_started_by_control_plane": report.emulator_started,
                 }
+            elif job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
+                report = self._onedragon_preflight_report(job)
+                if report is None:
+                    return
         self._transfer_queue_emulator_ownership(eligible_jobs, runtime_contexts)
         if not self.queue.start(
             excluded_job_ids=active_job_ids,
@@ -268,24 +277,30 @@ class MainWindow(QMainWindow):
     def _fos_preflight_report(self, job):
         return self._integration_preflight_report(job, kind="fos")
 
+    def _onedragon_preflight_report(self, job):
+        return self._integration_preflight_report(job, kind="onedragon")
+
     def _integration_preflight_report(self, job, *, kind: str):
         def check():
-            if kind == "fos":
-                report, error = run_preflight_with_progress(
-                    job.runner_config, parent=self, i18n=self.i18n, kind="fos"
-                )
-            else:
+            if kind == "maa":
+                # Keep the original call shape for embedders/tests that
+                # provide the MAA runner callback; specialized integrations
+                # opt into the explicit kind dispatch below.
                 report, error = run_preflight_with_progress(
                     job.runner_config, parent=self, i18n=self.i18n
                 )
+            else:
+                report, error = run_preflight_with_progress(
+                    job.runner_config, parent=self, i18n=self.i18n, kind=kind
+                )
             if report is None:
+                body_key = {
+                    "fos": "message.fos_preflight_failed_body",
+                    "onedragon": "message.onedragon_preflight_failed_body",
+                }.get(kind, "message.preflight_failed_body")
                 raise RuntimeError(
                     error
-                    or self.i18n.text(
-                        "message.fos_preflight_failed_body"
-                        if kind == "fos"
-                        else "message.preflight_failed_body"
-                    )
+                    or self.i18n.text(body_key)
                 )
             return report
 
@@ -293,19 +308,19 @@ class MainWindow(QMainWindow):
             report = check()
         except Exception as exc:  # pragma: no cover - defensive UI boundary
             self.logger.exception("Could not check MAA setup for job %s", job.id)
+            title_key = {
+                "fos": "message.fos_preflight_failed_title",
+                "onedragon": "message.onedragon_preflight_failed_title",
+            }.get(kind, "message.preflight_failed_title")
+            body_key = {
+                "fos": "message.fos_preflight_failed_body",
+                "onedragon": "message.onedragon_preflight_failed_body",
+            }.get(kind, "message.preflight_failed_body")
             QMessageBox.critical(
                 self,
-                self.i18n.text(
-                    "message.fos_preflight_failed_title"
-                    if kind == "fos"
-                    else "message.preflight_failed_title"
-                ),
+                self.i18n.text(title_key),
                 str(exc)
-                or self.i18n.text(
-                    "message.fos_preflight_failed_body"
-                    if kind == "fos"
-                    else "message.preflight_failed_body"
-                ),
+                or self.i18n.text(body_key),
             )
             return None
         if report.ready:

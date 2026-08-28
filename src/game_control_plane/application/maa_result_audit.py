@@ -10,6 +10,7 @@ from ..integrations.maa_managed_task import (
     expected_managed_task_names,
     is_managed_maa_config,
 )
+from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
 
 
 _SUMMARY_PATTERN = re.compile(
@@ -29,11 +30,32 @@ class RunResultAssessment:
 
 
 def assess_run_result(job: Job, stdout_path: str | Path, stderr_path: str | Path) -> RunResultAssessment:
+    if job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
+        return assess_onedragon_output(stdout_path, stderr_path)
     if job.runner_type != MAA_CLI_RUNNER_TYPE or not is_managed_maa_config(job.runner_config):
         return RunResultAssessment()
     stdout = _read_text(stdout_path)
     stderr = _read_text(stderr_path)
     return assess_managed_maa_output(job.runner_config, stdout, stderr)
+
+
+def assess_onedragon_output(
+    stdout_path: str | Path,
+    stderr_path: str | Path,
+) -> RunResultAssessment:
+    """Keep OneDragon exit-0 runs reviewable because no completion protocol exists."""
+
+    stdout = _read_text(stdout_path)
+    stderr = _read_text(stderr_path)
+    captured = "stdout" if stdout.strip() else "stderr" if stderr.strip() else "no output"
+    return RunResultAssessment(
+        needs_attention=True,
+        summary=(
+            "OneDragon exited normally, but Control Plane cannot verify that "
+            f"Zenless Zone Zero daily tasks completed ({captured} captured). "
+            "Review the captured OneDragon log and mark the daily complete manually if appropriate."
+        ),
+    )
 
 
 def assess_managed_maa_output(
@@ -81,4 +103,9 @@ def _read_text(path: str | Path) -> str:
         return ""
 
 
-__all__ = ["RunResultAssessment", "assess_managed_maa_output", "assess_run_result"]
+__all__ = [
+    "RunResultAssessment",
+    "assess_managed_maa_output",
+    "assess_onedragon_output",
+    "assess_run_result",
+]

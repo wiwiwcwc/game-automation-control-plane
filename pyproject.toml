@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "game-automation-control-plane"
-version = "0.1.13"
+version = "0.1.14"
 description = "A small Windows desktop control plane for game automation jobs"
 readme = "README.md"
 license = "AGPL-3.0-only"

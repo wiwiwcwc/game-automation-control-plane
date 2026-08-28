@@ -15,7 +15,7 @@
 
 它把 **MAA / maa-cli（明日方舟）**、**MAA_Punish / FOS（战双帕弥什）**、**OK-WW（鸣潮）** 等现有工具接到同一个任务列表里，统一管理启动参数、运行状态和日志。目前只接入这些已经做过适配的工具；它不是通用游戏机器人，也不承诺支持所有游戏。
 
-`v0.1.13` 已于 2026-08-27 发布。项目仍处于早期阶段，适合希望少开几个窗口、集中管理手游日常脚本，或想在 Windows 上开发外部工具编排器的用户。
+`v0.1.14` 已于 2026-08-28 发布。项目仍处于早期阶段，适合希望少开几个窗口、集中管理手游日常脚本，或想在 Windows 上开发外部工具编排器的用户。
 
 ## 你会得到什么
 
@@ -31,13 +31,14 @@
 | MAA / `maa-cli` | 明日方舟 / Arknights | 版本、任务、dry-run、ADB 预检；受控每日任务；按所有权启动/监控 MuMu |
 | MAA_Punish / FOS | 战双帕弥什 / Punishing: Gray Raven | 读取保存配置、跟踪任务流、按精确路径处理 FOS 和 MuMu |
 | OK-WW | 鸣潮 / Wuthering Waves | 任务序号、`-t <index>`、可选 `-e` 和受限的 worker 交接监控 |
+| 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | 连接已安装的 RuntimeLauncher（优先）或经典 Launcher，显式运行一条龙；可选账号实例和 `-c` |
 | Custom CLI | 其他外部脚本 | 明确的解释器/可执行文件、逐项参数、工作目录、输出和历史 |
 
-**OneDragon 暂无内置适配器**；其他游戏也不会因为出现在搜索关键词里就自动获得支持。需要接入新工具时，请先看[集成状态](docs/integrations.md)和根目录 [`AGENTS.md`](AGENTS.md)。
+绝区零 OneDragon 适配器只连接用户已经安装的启动器，不下载或捆绑 OneDragon、运行时、模型或游戏文件；它不是通用 OneDragon 适配器，也不承诺支持其他游戏。其他游戏也不会因为出现在搜索关键词里就自动获得支持。需要接入新工具时，请先看[集成状态](docs/integrations.md)和根目录 [`AGENTS.md`](AGENTS.md)。
 
 ## 快速开始
 
-1. 从 [v0.1.13 Release](https://github.com/wiwiwcwc/game-automation-control-plane/releases/tag/v0.1.13) 下载 `GameAutomationControlPlane-windows.zip` 和同名 `.sha256` 文件。
+1. 从 [v0.1.14 Release](https://github.com/wiwiwcwc/game-automation-control-plane/releases/tag/v0.1.14) 下载 `GameAutomationControlPlane-windows.zip` 和同名 `.sha256` 文件。
 2. 在 PowerShell 中核对 SHA-256：
 
    ```powershell
@@ -59,6 +60,7 @@
 - MAA/maa-cli 的预检、配置合约和结果审计有本地测试，但完整真实 MAA 每日任务尚未在本项目中端到端验证。
 - MAA_Punish/FOS 的保存配置读取、任务流监控、精确路径进程处理和 MuMu 所有权有合约测试；本项目不替代或捆绑 FOS。
 - OK-WW 的任务序号、`-t <index>`、可选 `-e` 和 worker 交接有本地覆盖；当前安装版本的完整游戏流程及进程结束行为仍需在目标环境验证。
+- 绝区零 OneDragon 的启动器发现、Runtime/经典目录预检、`-o`/`-i`/`-c` 参数和失败路径有本地覆盖；启动器版本差异、账号是否存在、真实游戏日常流程及上游完成信号仍未在本项目中实机验证。OneDragon 正常退出也只会进入“需要检查”，不会自动标记今日完成。
 - 执行成功与“今日已完成”是两件事；队列是内存快照，不提供调度器、插件系统、队列持久化、进程树取消、自动验证或自动标记完成。
 - 详细参数和失败路径见 [`docs/integrations.md`](docs/integrations.md)；生命周期、SQLite、并发和 MuMu 所有权见 [`docs/architecture.md`](docs/architecture.md)。
 

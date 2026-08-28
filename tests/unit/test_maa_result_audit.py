@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from game_control_plane.application.maa_result_audit import assess_managed_maa_output
+from game_control_plane.application.maa_result_audit import (
+    assess_managed_maa_output,
+    assess_onedragon_output,
+)
 from game_control_plane.integrations.maa_managed_task import default_managed_daily
 
 
@@ -57,3 +60,16 @@ def test_task_chain_error_is_partial_even_with_a_complete_summary():
     )
     assert result.needs_attention
     assert "task-chain error" in result.summary
+
+
+def test_onedragon_exit_is_always_manual_review(tmp_path):
+    stdout = tmp_path / "stdout.txt"
+    stderr = tmp_path / "stderr.txt"
+    stdout.write_text("OneDragon finished", encoding="utf-8")
+    stderr.write_text("", encoding="utf-8")
+
+    result = assess_onedragon_output(stdout, stderr)
+
+    assert result.needs_attention
+    assert "cannot verify" in result.summary
+    assert "mark the daily complete manually" in result.summary

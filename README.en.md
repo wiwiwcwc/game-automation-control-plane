@@ -14,7 +14,7 @@
 
 It connects existing tools such as **MAA / maa-cli (Arknights)**, **MAA_Punish / FOS (Punishing: Gray Raven)**, and **OK-WW (Wuthering Waves)** to one task list. It currently covers only these implemented integrations: it is not a generic game bot and does not claim to support every game.
 
-`v0.1.13` was released on 2026-08-27. This is an early-stage Windows-first PySide6 application for users who want a simpler way to run and review mobile-game daily scripts, and for developers building explicit launchers around existing tools.
+`v0.1.14` was released on 2026-08-28. This is an early-stage Windows-first PySide6 application for users who want a simpler way to run and review mobile-game daily scripts, and for developers building explicit launchers around existing tools.
 
 ## What it is useful for
 
@@ -30,13 +30,14 @@ It connects existing tools such as **MAA / maa-cli (Arknights)**, **MAA_Punish /
 | MAA / `maa-cli` | Arknights | Version/task/dry-run/ADB preflight, managed daily tasks, and ownership-aware MuMu monitoring |
 | MAA_Punish / FOS | Punishing: Gray Raven | Saved-config discovery, task-flow monitoring, and exact-path FOS/MuMu handling |
 | OK-WW | Wuthering Waves | Positive task index, `-t <index>`, optional `-e`, and constrained worker handoff monitoring |
+| Zenless Zone Zero OneDragon | Zenless Zone Zero | Connects an installed RuntimeLauncher (preferred) or classic launcher, with explicit one-dragon, instance, and optional `-c` arguments |
 | Custom CLI | Other external scripts | Explicit interpreter/executable, arguments, working directory, output, and history |
 
-OneDragon does not have a built-in adapter, and mentioning an external tool does not imply support for other games. See [integration status](docs/integrations.md) before treating a behavior as verified.
+The ZZZ adapter connects only to a launcher the user has already installed; it does not download or bundle OneDragon, its runtime, models, or game files. It is not a generic OneDragon adapter and does not imply support for other games. See [integration status](docs/integrations.md) before treating a behavior as verified.
 
 ## Quick start
 
-1. Download `GameAutomationControlPlane-windows.zip` and its `.sha256` file from the [v0.1.13 Release](https://github.com/wiwiwcwc/game-automation-control-plane/releases/tag/v0.1.13).
+1. Download `GameAutomationControlPlane-windows.zip` and its `.sha256` file from the [v0.1.14 Release](https://github.com/wiwiwcwc/game-automation-control-plane/releases/tag/v0.1.14).
 2. Compare the ZIP with its checksum in PowerShell:
 
    ```powershell
@@ -58,6 +59,7 @@ Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by
 - MAA/maa-cli preflight, configuration contracts, and result auditing have local test coverage; a complete live MAA daily run is not claimed as verified here.
 - MAA_Punish/FOS saved-config discovery, task-flow monitoring, exact-path process handling, and MuMu ownership have contract coverage; this project does not replace or bundle FOS.
 - OK-WW task arguments and worker handoff are covered locally; the complete behavior of a user's installed version still needs validation in that environment.
+- OneDragon launcher discovery, Runtime/classic layout checks, `-o`/`-i`/`-c` construction, and failure paths are covered locally; installed-version differences, account existence, the live game flow, and an upstream completion signal remain unverified. A normal OneDragon exit is shown as needs attention and never marks today's completion automatically.
 - Execution success is separate from marking a daily complete. The queue is an in-memory snapshot; scheduling, plugins, persisted queue recovery, process-tree cancellation, automatic verification, and automatic completion are outside this release.
 - See [integration status](docs/integrations.md) and [architecture](docs/architecture.md) for detailed contracts and lifecycle behavior.
 

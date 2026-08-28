@@ -3,6 +3,23 @@
 All notable changes are recorded here. Version 0.1.13 is the first published
 release of the project.
 
+## [0.1.14] — 2026-08-28
+
+### Added
+
+- Added a focused **Zenless Zone Zero OneDragon** integration for an existing
+  `OneDragon-RuntimeLauncher.exe` or official `OneDragon-Launcher.exe`.
+- Added conservative launcher discovery, Runtime/classic layout preflight,
+  bilingual editor fields, and tests for explicit `-o`, optional `-i`, and
+  optional `-c` arguments.
+
+### Changed
+
+- OneDragon exit code 0 is recorded as `needs_attention`; captured logs remain
+  available and the Control Plane never marks a daily complete automatically.
+- Documented the upstream launcher contract and the unverified live-game and
+  installed-version boundaries.
+
 ## [0.1.13] — 2026-08-27
 
 ### Changed
@@ -203,8 +220,8 @@ release of the project.
 
 ### Not included
 
-- Built-in OneDragon adapter, or end-to-end verification of the current MAA
-  `daily` task/configuration or OK-WW process termination.
+- Live OneDragon completion verification, or end-to-end verification of the
+  current MAA `daily` task/configuration or OK-WW process termination.
 - Scheduling, plugins, parallel execution, process-tree stop/cancel, automatic
   verification, or automatic daily completion.
 - Installer, updater, code signing, GitHub Release publication, or a project

@@ -3,6 +3,7 @@ import json
 
 from PySide6.QtWidgets import QApplication
 
+from game_control_plane.domain.models import Job
 from game_control_plane.ui import job_editor
 from game_control_plane.ui.job_editor import JobEditorDialog
 from game_control_plane.ui.i18n import LanguageManager
@@ -183,3 +184,64 @@ def test_fos_onboarding_discovers_saved_configuration_and_builds_payload(monkeyp
         "close_fos_after_run": True,
     }
     dialog.close()
+
+
+def test_zzz_onedragon_onboarding_uses_runtime_launcher_and_round_trips_fields(monkeypatch, tmp_path):
+    app_instance()
+    launcher = tmp_path / "OneDragon-RuntimeLauncher.exe"
+    launcher.touch()
+    monkeypatch.setattr(job_editor, "discover_zzz_onedragon", lambda: str(launcher))
+
+    dialog = JobEditorDialog(i18n=LanguageManager("zh_CN", persist=False))
+    dialog.show()
+    dialog.integration_combo.setCurrentIndex(
+        dialog.integration_combo.findData("zzz_onedragon")
+    )
+    app_instance().processEvents()
+
+    assert dialog.integration_combo.currentText() == "绝区零 OneDragon"
+    assert dialog.game_name.text() == "绝区零"
+    assert dialog.game_name.isReadOnly()
+    assert dialog.executable_path.text() == str(launcher)
+    assert dialog.onedragon_instance_label.text() == "账号实例"
+    assert dialog.onedragon_instance_indices.isVisible()
+    assert "active_in_od" in dialog.onedragon_instance_indices.placeholderText()
+    assert dialog.arguments.isHidden()
+    assert dialog.working_container.isHidden()
+
+    dialog.job_name.setText("绝区零日常")
+    dialog.onedragon_instance_indices.setText("1,2")
+    dialog.onedragon_close_game.setChecked(True)
+    payload, errors = dialog._payload()
+    assert errors == []
+    assert payload["game_name"] == "绝区零"
+    assert payload["runner_type"] == "zzz_onedragon"
+    assert payload["runner_config"] == {
+        "config_version": 1,
+        "executable_path": str(launcher),
+        "instance_indices": "1,2",
+        "close_game_after_run": True,
+    }
+    dialog.close()
+
+    job = Job(
+        id=4,
+        game_id=4,
+        game_name="Zenless Zone Zero",
+        name="ZZZ daily",
+        runner_type="zzz_onedragon",
+        runner_config_version=1,
+        runner_config_json=json.dumps(payload["runner_config"]),
+        enabled=True,
+        queue_order=1,
+        timezone_id="Asia/Shanghai",
+        reset_minute=240,
+    )
+    restored = JobEditorDialog(job=job, i18n=LanguageManager("en_US", persist=False))
+    restored.show()
+    assert restored.integration_combo.currentData() == "zzz_onedragon"
+    assert restored.game_name.text() == "Zenless Zone Zero"
+    assert restored.onedragon_instance_indices.text() == "1,2"
+    assert restored.onedragon_close_game.isChecked()
+    assert restored.onedragon_instance_label.text() == "Account instances"
+    restored.close()

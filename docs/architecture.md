@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.13 implementation, not a promise about future
+This document describes the 0.1.14 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -15,7 +15,7 @@ DailyCompletion is a separate durable ledger keyed by Job and reset period.
 | --- | --- |
 | Game | Names a game and groups related jobs. It does not run anything itself. |
 | Job | Stores the automation name, enabled flag, queue order, timezone/reset settings, integration type, and versioned JSON runner configuration. |
-| Integration | Validates a job configuration and turns it into an explicit launch specification. The registry contains `custom_cli`, contract-bound `maa_cli`, `maa_punish`, and contract-bound `ok_ww` integrations. |
+| Integration | Validates a job configuration and turns it into an explicit launch specification. The registry contains `custom_cli`, contract-bound `maa_cli`, `maa_punish`, contract-bound `ok_ww`, and the focused `zzz_onedragon` launcher adapter. |
 | Execution | Owns independent asynchronous Qt `QProcess` objects per active run, persists state transitions, and captures output. |
 | Run | Records one attempted launch, its trigger, state, exit information, errors, launch snapshot, and captured-log paths. |
 | DailyCompletion | Records a manual completion for one job and one computed daily period. It is intentionally separate from process exit. |
@@ -60,7 +60,7 @@ battle count. Missing evidence produces `needs_attention` with error kind
 produce a durable failed run. None of those outcomes writes a
 `DailyCompletion` row.
 
-Before a MAA or MAA_Punish job reaches `ExecutionService`, the dashboard runs a
+Before a MAA, MAA_Punish, or OneDragon job reaches `ExecutionService`, the dashboard runs a
 separate preflight gate for both manual Run and the daily queue. MAA checks the executable,
 exact task name, safe dry-run, and configured ADB device. For a managed task,
 it first validates the editor settings and atomically writes a job-scoped
@@ -84,6 +84,18 @@ already-running instance is never owned or closed. Cleanup runs asynchronously;
 its failure is retained as a warning without changing MAA's successful result.
 The cleanup is skipped for `needs_attention`, leaving the owned instance open
 for diagnosis.
+
+The focused `zzz_onedragon` integration requires the exact
+`OneDragon-RuntimeLauncher.exe` or `OneDragon-Launcher.exe` name. Runtime
+preflight checks adjacent `.runtime` and `src`; classic preflight checks the
+conservative `resources/config/project.yml` and `repository.yml` layout. Its
+launch specification is the upstream explicit `-o`, optional `-i <indices>`,
+and optional `-c`, with the launcher parent as working directory. There is no
+trusted external completion signal, so a clean OneDragon exit is finalized as
+`needs_attention` and never changes `DailyCompletion`. The adapter does not
+read or modify OneDragon YAML/account settings, follow an unverified worker,
+take over the game window, or stop external processes by name.
+
 For MAA_Punish, preflight validates FOS, the selected saved configuration and
 controller, its optional MuMu association, and the direct-run contract. The
 same runtime watcher and ownership-scoped shutdown apply to its internal FOS
@@ -176,7 +188,6 @@ place. Orphan directories are not removed.
 
 ## Historical non-goals for 0.1.0
 
-- Built-in OneDragon adapter.
 - End-to-end OK-WW execution or process-termination compatibility verification.
 - End-to-end MAA task verification or assumptions about the current MaaCore
   configuration.
@@ -196,6 +207,8 @@ place. Orphan directories are not removed.
 - OK-WW contract integration: [`integrations/ok_ww.py`](../src/game_control_plane/integrations/ok_ww.py)
 - MAA_Punish contract integration: [`integrations/maa_punish.py`](../src/game_control_plane/integrations/maa_punish.py)
 - FOS task-flow monitor: [`integrations/fos_runner.py`](../src/game_control_plane/integrations/fos_runner.py)
+- Zenless Zone Zero OneDragon contract integration: [`integrations/onedragon.py`](../src/game_control_plane/integrations/onedragon.py)
+- OneDragon installation preflight: [`integrations/onedragon_preflight.py`](../src/game_control_plane/integrations/onedragon_preflight.py)
 - App-data paths: [`platform/paths.py`](../src/game_control_plane/platform/paths.py)
 - Packaging entry point/spec: [`packaging/entrypoint.py`](../packaging/entrypoint.py), [`packaging/game_control_plane.spec`](../packaging/game_control_plane.spec)
 - Windows build wrapper and license placement: [`packaging/build_windows.ps1`](../packaging/build_windows.ps1)
