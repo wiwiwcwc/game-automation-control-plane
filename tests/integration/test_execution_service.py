@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -14,6 +15,10 @@ from PySide6.QtWidgets import QApplication
 from game_control_plane.application.execution_service import ExecutionService
 from game_control_plane.application.maa_result_audit import RunResultAssessment
 from game_control_plane.application.post_run_actions import PostRunAction
+from game_control_plane.application.process_supervisor import (
+    ProcessIdentity,
+    ProcessTerminationResult,
+)
 from game_control_plane.application.queue_service import QueueService, QueueState
 from game_control_plane.domain.models import DailyStatus, RunState
 from game_control_plane.integrations.base import LaunchSpec, ValidationResult
@@ -212,19 +217,183 @@ class FixtureOneDragonIntegration:
     display_name = "ZZZ OneDragon fixture"
     config_version = 1
 
-    def __init__(self, fixture: Path):
+    def __init__(self, fixture: Path, seconds: float | None = None):
         self.fixture = fixture
+        self.seconds = seconds
 
     def validate_config(self, _config):
         return ValidationResult.ok()
 
     def build_launch_spec(self, _job):
+        arguments = (str(self.fixture), "--mode", "success")
+        if self.seconds is not None:
+            arguments = (
+                str(self.fixture),
+                "--mode",
+                "sleep",
+                "--seconds",
+                str(self.seconds),
+            )
         return LaunchSpec(
             executable=sys.executable,
-            arguments=(str(self.fixture), "--mode", "success"),
+            arguments=arguments,
             working_directory=str(self.fixture.parent),
             display_command="OneDragon-RuntimeLauncher.exe -o",
         )
+
+
+class RecordingProcessSupervisor:
+    """Test double that records exact identities without touching process names."""
+
+    def __init__(self, *, verify_result: bool = True):
+        self.verify_result = verify_result
+        self.captured: list[ProcessIdentity] = []
+        self.verified: list[ProcessIdentity] = []
+        self.terminated: list[ProcessIdentity] = []
+
+    def capture(self, pid: int, expected_executable: str) -> ProcessIdentity:
+        identity = ProcessIdentity(
+            pid=pid,
+            executable=expected_executable,
+            token=f"test-token-{pid}",
+        )
+        self.captured.append(identity)
+        return identity
+
+    def verify(self, identity: ProcessIdentity) -> bool:
+        self.verified.append(identity)
+        return self.verify_result
+
+    def terminate_tree(self, identity: ProcessIdentity) -> ProcessTerminationResult:
+        self.terminated.append(identity)
+        return ProcessTerminationResult(
+            success=True,
+            attempted_pids=(identity.pid,),
+        )
+
+
+def _wait_for_run(service: ExecutionService, run_id: str, timeout_ms: int = 5_000):
+    loop = QEventLoop()
+
+    def on_finished(identifier: str):
+        if identifier == run_id:
+            loop.quit()
+
+    service.run_finished.connect(on_finished)
+    QTimer.singleShot(timeout_ms, loop.quit)
+    loop.exec()
+    service.run_finished.disconnect(on_finished)
+    return service.store.get_run(run_id)
+
+
+def create_onedragon_job(store: Store, name: str = "OneDragon daily"):
+    job_id = store.save_job(
+        game_name="Zenless Zone Zero",
+        name=name,
+        runner_type="zzz_onedragon",
+        runner_config_version=1,
+        runner_config={"config_version": 1},
+        timezone_id="UTC",
+        reset_minute=240,
+    )
+    return store.get_job(job_id)
+
+
+def test_onedragon_stop_interrupts_only_exact_owned_run_and_persists_identity(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    supervisor = RecordingProcessSupervisor()
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([FixtureOneDragonIntegration(fixture, seconds=10)]),
+        emulator_watchdog_factory=lambda _job, _parent: None,
+        process_supervisor=supervisor,
+        stop_grace_ms=25,
+    )
+    first = create_onedragon_job(store, "OneDragon first")
+    second = create_onedragon_job(store, "OneDragon second")
+    assert first and second
+    app_instance()
+
+    first_run = service.start(first)
+    second_run = service.start(second)
+    QTimer.singleShot(100, lambda: service.stop(first_run.id, reason="test stop"))
+    finished_first = _wait_for_run(service, first_run.id)
+
+    assert finished_first is not None
+    assert finished_first.state == RunState.INTERRUPTED
+    assert finished_first.error_kind == "interrupted"
+    assert store.daily_status(first) == DailyStatus.PENDING
+    assert len(supervisor.terminated) == 1
+    assert supervisor.terminated[0].pid == supervisor.captured[0].pid
+    snapshot = json.loads(finished_first.launch_snapshot_json)
+    assert snapshot["owned_process"]["verified"] is True
+    assert snapshot["root_process_token"] == supervisor.captured[0].token
+    assert service.is_job_running(second.id)
+
+    service.stop(second_run.id, reason="test cleanup")
+    assert _wait_for_run(service, second_run.id) is not None
+    assert len(supervisor.terminated) == 2
+
+
+def test_onedragon_stop_refuses_pid_reuse_and_records_stop_failure(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    supervisor = RecordingProcessSupervisor(verify_result=False)
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([FixtureOneDragonIntegration(fixture, seconds=0.25)]),
+        emulator_watchdog_factory=lambda _job, _parent: None,
+        process_supervisor=supervisor,
+        stop_grace_ms=25,
+    )
+    job = create_onedragon_job(store)
+    assert job
+    app_instance()
+    run = service.start(job)
+    # Keep the fixture alive until identity verification has happened. This
+    # exercises the refusal path rather than a cooperative process exit.
+    service._request_graceful_stop = lambda _active: None
+    QTimer.singleShot(40, lambda: service.stop(run.id, reason="test pid reuse"))
+    finished = _wait_for_run(service, run.id)
+
+    assert finished is not None
+    assert finished.state == RunState.FAILED
+    assert finished.error_kind == "stop_failed"
+    assert "changed" in (finished.error_summary or "")
+    assert supervisor.verified
+    assert not supervisor.terminated
+
+
+def test_stop_is_idempotent_and_rejects_unverified_root_without_name_lookup(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    supervisor = RecordingProcessSupervisor()
+    supervisor.capture = lambda _pid, _expected: None
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([FixtureOneDragonIntegration(fixture, seconds=0.25)]),
+        emulator_watchdog_factory=lambda _job, _parent: None,
+        process_supervisor=supervisor,
+        stop_grace_ms=25,
+    )
+    job = create_onedragon_job(store)
+    assert job
+    app_instance()
+    run = service.start(job)
+    service._request_graceful_stop = lambda _active: None
+    calls = []
+    QTimer.singleShot(40, lambda: calls.extend((service.stop(run.id), service.stop(run.id))))
+    finished = _wait_for_run(service, run.id)
+
+    assert calls == [True, True]
+    assert finished is not None
+    assert finished.state == RunState.FAILED
+    assert finished.error_kind == "stop_failed"
+    assert not supervisor.terminated
 
 
 def test_onedragon_clean_exit_needs_manual_completion_review(tmp_path: Path):

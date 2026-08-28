@@ -1,7 +1,32 @@
 # Changelog
 
-All notable changes are recorded here. Version 0.1.18 is the current source
+All notable changes are recorded here. Version 0.1.19 is the current source
 version of the project.
+
+## [0.1.19] — 2026-08-29
+
+### Added
+
+- Added an explicit **Open OneDragon GUI** action to OneDragon task cards.
+  It starts the configured launcher with no arguments in its installation
+  directory, without creating a Hsiesta run or attaching to an automatic run.
+- Added a OneDragon-only **Stop** action that records an interrupted run and
+  can terminate only the verified launcher PID tree owned by that run.
+
+### Changed
+
+- OneDragon automatic runs are labelled **Run automatically** and remain the
+  official `-o` headless mode. Hsiesta blocks its own GUI action while that
+  task is active or queued, but a detached GUI is not tracked and a GUI opened
+  elsewhere cannot be detected; close the official GUI before an automatic run.
+- Exact OneDragon stops now take a FILETIME cutoff before each Windows tree
+  capture, hold root-tree process handles through validation, retry only a
+  bounded number of times when a new descendant appears, and verify that no
+  owned process remains afterward. PID reuse or parent changes fail closed
+  without name-based cleanup.
+- Normal Hsiesta shutdown now stops owned active processes and waits for their
+  terminal run persistence before closing SQLite. Stop failures remain visible
+  and do not mark a daily complete.
 
 ## [0.1.18] — 2026-08-28
 

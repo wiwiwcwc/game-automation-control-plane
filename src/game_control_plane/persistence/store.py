@@ -265,6 +265,35 @@ class Store:
             raise KeyError(run_id)
         return result
 
+    def update_run_launch_snapshot(
+        self,
+        run_id: str,
+        values: dict[str, object],
+    ) -> Run:
+        """Merge runtime-owned launch metadata into one durable run record."""
+
+        row = self.connection.execute(
+            "SELECT launch_snapshot_json FROM runs WHERE id = ?", (run_id,)
+        ).fetchone()
+        if row is None:
+            raise KeyError(run_id)
+        try:
+            snapshot = json.loads(str(row[0]))
+        except (TypeError, ValueError):
+            snapshot = {}
+        if not isinstance(snapshot, dict):
+            snapshot = {}
+        snapshot.update(values)
+        self.connection.execute(
+            "UPDATE runs SET launch_snapshot_json = ? WHERE id = ?",
+            (json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")), run_id),
+        )
+        self.connection.commit()
+        result = self.get_run(run_id)
+        if result is None:
+            raise KeyError(run_id)
+        return result
+
     def get_run(self, run_id: str) -> Run | None:
         row = self.connection.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
         return _run_from_row(row) if row else None

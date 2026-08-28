@@ -185,3 +185,28 @@ def test_queue_excludes_active_jobs_and_passes_per_run_context(tmp_path: Path):
 
     assert executor.attempts == [(queued.id, "queue")]
     assert executor.contexts == [context]
+
+
+def test_queue_cancel_drops_pending_items_without_starting_them(tmp_path: Path):
+    store = make_store(tmp_path)
+    first = add_job(store, "First")
+    second = add_job(store, "Second")
+    assert first and second
+    executor = FakeExecutor()
+    queue = QueueService(store, executor)
+
+    assert queue.start()
+    assert queue.active
+    queue.cancel()
+    pump_events()
+
+    assert queue.state == QueueState.IDLE
+    assert queue.current_job_id is None
+    assert queue.queued_job_ids == ()
+    assert executor.attempts == [(first.id, "queue")]
+
+    # A late terminal signal from the run that was active at cancellation is
+    # ignored, so the dropped queue cannot start the next item.
+    executor.finish("interrupted")
+    pump_events()
+    assert executor.attempts == [(first.id, "queue")]

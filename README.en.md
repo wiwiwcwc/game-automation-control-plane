@@ -17,14 +17,14 @@ Support will expand gradually as each tool's launch, monitoring, and completion 
 
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.18`.
+The current source version is `0.1.19`.
 
 ## Windows download
 
 ### One-click installation (recommended)
 
 Open [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases), download
-`Hsiesta-0.1.18-Setup.exe`, double-click it, and follow the wizard. The installer
+`Hsiesta-0.1.19-Setup.exe`, double-click it, and follow the wizard. The installer
 defaults to the current user's `%LOCALAPPDATA%\Programs\Hsiesta`; a Start Menu
 shortcut is created by default and the desktop shortcut is optional. The installer
 itself does not require administrator privileges, while the existing
@@ -76,7 +76,7 @@ Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by
 | MAA / `maa-cli` | Arknights | Version, task, dry-run, and ADB preflight; managed daily tasks; ownership-aware MuMu monitoring |
 | MAA_Punish / FOS | Punishing: Gray Raven | Saved-config discovery, task-flow monitoring, and exact-path FOS/MuMu handling |
 | OK-WW | Wuthering Waves | Positive task index, `-t <index>`, optional `-e`, and constrained worker handoff monitoring |
-| Zenless Zone Zero OneDragon | Zenless Zone Zero | Connects an installed RuntimeLauncher (preferred) or classic launcher and explicitly calls the one-dragon entry point, with optional instance and `-c` arguments |
+| Zenless Zone Zero OneDragon | Zenless Zone Zero | “Open OneDragon GUI” starts the official GUI; “Run automatically” uses headless `-o`, with optional instance and `-c` arguments, plus exact stop for the owned run |
 | Custom CLI | Other external scripts | Explicit interpreter/executable, arguments, working directory, output, and run history |
 
 OneDragon currently supports Zenless Zone Zero; install and configure OneDragon before using it.
@@ -102,6 +102,16 @@ Exit code 0 only means that the external process ended normally. MAA requires co
 ### Which OneDragon directory should I select?
 
 For the classic OneDragon Full-Environment layout, select the complete directory containing `OneDragon-Launcher.exe`, `config/project.yml`, and `config/repository.yml`. The compatibility layout requires the complete `resources/config/*.yml` set. Do not move the YAML files.
+
+### What is the difference between “Open OneDragon GUI” and “Run automatically”?
+
+“Open OneDragon GUI” starts the configured launcher from its installation directory with no arguments. It is an independent action: it creates no Hsiesta run record, and you can inspect, pause, or start the task manually in the official GUI. “Run automatically” calls the official headless `-o` entry point; there is no GUI-display or attach switch. Hsiesta disables the GUI action while this task has an active or queued automatic run, but it does not track a detached official GUI; if you opened that GUI elsewhere, Hsiesta cannot detect it and reverse-block the task. Close the official GUI before clicking “Run automatically”.
+
+OneDragon has no external stop protocol that Hsiesta can trust. Hsiesta’s “Stop” therefore applies only to the exact launcher PID tree verified and started for that run; it never broadly kills processes named `OneDragon`, `python`, or `ZenlessZoneZero.exe`. If Zenless Zone Zero is closed while OneDragon keeps waiting, click “Stop” on the task card and inspect the external process manually if Hsiesta reports a failure or possible residue.
+
+### What happens when I close Hsiesta?
+
+During a normal close, Hsiesta asks for confirmation when tasks are active, requests stops asynchronously for processes owned by the current runs, and closes SQLite only after terminal run persistence has completed. A stop timeout is recorded as a failure before Hsiesta exits; abnormal termination, power loss, and forced external kills are outside this cleanup guarantee.
 
 ### What should I check when startup fails?
 

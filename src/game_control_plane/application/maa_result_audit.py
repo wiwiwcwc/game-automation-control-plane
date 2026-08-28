@@ -53,7 +53,8 @@ def assess_onedragon_output(
         summary=(
             "OneDragon exited normally, but Hsiesta cannot verify that "
             f"Zenless Zone Zero daily tasks completed ({captured} captured). "
-            "Review the captured OneDragon log and mark the daily complete manually if appropriate."
+            "Review the captured OneDragon log and mark the daily complete manually if appropriate. "
+            "Hsiesta does not follow or stop an unverified OneDragon worker; inspect manually if any process remains."
         ),
     )
 

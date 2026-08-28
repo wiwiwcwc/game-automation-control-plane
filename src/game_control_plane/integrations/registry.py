@@ -13,7 +13,9 @@ INTEGRATION_LABELS = {
     "maa_cli": "MAA",
     "maa_punish": "MAA_Punish",
     "ok_ww": "OK-WW",
-    "zzz_onedragon": "绝区零 OneDragon",
+    # Badge text is intentionally locale-neutral; the task editor and title
+    # use the localized game/integration labels from LanguageManager.
+    "zzz_onedragon": "OneDragon",
 }
 
 

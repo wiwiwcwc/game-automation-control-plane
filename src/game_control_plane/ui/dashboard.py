@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from ..domain.models import DailyStatus, Job, Run
 from ..integrations.registry import integration_label
+from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
 from .i18n import LanguageManager, game_text, state_text
 
 
@@ -51,6 +52,8 @@ class SummaryTile(QFrame):
 
 class JobCard(QFrame):
     run_requested = Signal(int)
+    open_gui_requested = Signal(int)
+    stop_requested = Signal(int)
     completion_requested = Signal(int)
     view_log_requested = Signal(int)
     edit_requested = Signal(int)
@@ -102,6 +105,10 @@ class JobCard(QFrame):
 
         self.run_button = QPushButton()
         self.run_button.setProperty("role", "primary")
+        self.open_gui_button = QPushButton()
+        self.open_gui_button.setProperty("role", "secondary")
+        self.stop_button = QPushButton()
+        self.stop_button.setProperty("role", "danger")
         self.complete_button = QPushButton()
         self.log_button = QPushButton()
         self.edit_button = QPushButton()
@@ -113,6 +120,8 @@ class JobCard(QFrame):
         self.remove_button = QPushButton()
         self.remove_button.setProperty("role", "danger")
         self.run_button.clicked.connect(lambda: self._emit(self.run_requested))
+        self.open_gui_button.clicked.connect(lambda: self._emit(self.open_gui_requested))
+        self.stop_button.clicked.connect(lambda: self._emit(self.stop_requested))
         self.complete_button.clicked.connect(lambda: self._emit(self.completion_requested))
         self.log_button.clicked.connect(lambda: self._emit(self.view_log_requested))
         self.edit_button.clicked.connect(lambda: self._emit(self.edit_requested))
@@ -124,6 +133,8 @@ class JobCard(QFrame):
         primary_actions = QHBoxLayout()
         primary_actions.setSpacing(8)
         primary_actions.addWidget(self.run_button)
+        primary_actions.addWidget(self.open_gui_button)
+        primary_actions.addWidget(self.stop_button)
         primary_actions.addWidget(self.complete_button)
         primary_actions.addWidget(self.log_button)
         primary_actions.addStretch()
@@ -145,6 +156,8 @@ class JobCard(QFrame):
         layout.addLayout(primary_actions)
         layout.addLayout(manage_actions)
         self.i18n.language_changed.connect(self._retranslate)
+        self.open_gui_button.hide()
+        self.stop_button.hide()
 
     def _emit(self, signal: Signal) -> None:
         if self.job_id is not None:
@@ -228,7 +241,12 @@ class JobCard(QFrame):
             self.detail_label.setVisible(bool(latest_run.error_summary))
 
         controls_locked = active or queue_state in {"queued", "running"}
-        self.run_button.setText(self.i18n.text("button.run"))
+        is_onedragon = job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE
+        self.run_button.setText(
+            self.i18n.text("button.run_automatic" if is_onedragon else "button.run")
+        )
+        self.open_gui_button.setText(self.i18n.text("button.open_onedragon_gui"))
+        self.stop_button.setText(self.i18n.text("button.stop"))
         self.complete_button.setText(self.i18n.text("button.mark_pending" if daily_status == DailyStatus.COMPLETED else "button.mark_completed"))
         self.log_button.setText(self.i18n.text("button.view_log"))
         self.edit_button.setText(self.i18n.text("button.edit"))
@@ -239,6 +257,10 @@ class JobCard(QFrame):
         self.move_down_button.setToolTip(self.i18n.text("button.move_down"))
         self.move_down_button.setAccessibleName(self.i18n.text("button.move_down"))
         self.run_button.setEnabled(job.enabled and not controls_locked)
+        self.open_gui_button.setVisible(is_onedragon)
+        self.open_gui_button.setEnabled(is_onedragon and not controls_locked)
+        self.stop_button.setVisible(is_onedragon and active)
+        self.stop_button.setEnabled(is_onedragon and active)
         self.complete_button.setEnabled(not controls_locked)
         self.log_button.setEnabled(latest_run is not None)
         self.edit_button.setEnabled(not controls_locked)
@@ -252,6 +274,8 @@ class Dashboard(QWidget):
     add_requested = Signal()
     run_dailies_requested = Signal()
     run_requested = Signal(int)
+    open_gui_requested = Signal(int)
+    stop_requested = Signal(int)
     completion_requested = Signal(int)
     view_log_requested = Signal(int)
     edit_requested = Signal(int)
@@ -362,7 +386,11 @@ class Dashboard(QWidget):
             widget = item.widget()
             if widget is not None:
                 widget.setParent(None)
-                widget.deleteLater()
+                # The empty-state frame is a reusable member, not one of the
+                # transient job cards. Deleting it here leaves the next
+                # refresh with a dangling Qt wrapper.
+                if widget is not self.empty_state:
+                    widget.deleteLater()
         self._pending_count = sum(status == DailyStatus.PENDING for _, status, _, _ in items)
         self._completed_count = len(items) - self._pending_count
         self._running_count = sum(active for _, _, _, active in items)
@@ -381,6 +409,8 @@ class Dashboard(QWidget):
                 queue_state = "running"
             card.set_job(job, daily_status, latest_run, active, queue_state, queue_active, can_move_up=index > 0, can_move_down=index < len(items) - 1, order_locked=order_locked)
             card.run_requested.connect(self.run_requested)
+            card.open_gui_requested.connect(self.open_gui_requested)
+            card.stop_requested.connect(self.stop_requested)
             card.completion_requested.connect(self.completion_requested)
             card.view_log_requested.connect(self.view_log_requested)
             card.edit_requested.connect(self.edit_requested)

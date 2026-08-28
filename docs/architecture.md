@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.18 implementation, not a promise about future
+This document describes the 0.1.19 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -16,7 +16,7 @@ DailyCompletion is a separate durable ledger keyed by Job and reset period.
 | Game | Names a game and groups related jobs. It does not run anything itself. |
 | Job | Stores the automation name, enabled flag, queue order, timezone/reset settings, integration type, and versioned JSON runner configuration. |
 | Integration | Validates a job configuration and turns it into an explicit launch specification. The registry contains `custom_cli`, contract-bound `maa_cli`, `maa_punish`, contract-bound `ok_ww`, and the focused `zzz_onedragon` launcher adapter. |
-| Execution | Owns independent asynchronous Qt `QProcess` objects per active run, persists state transitions, and captures output. |
+| Execution | Owns independent asynchronous Qt `QProcess` objects per active run, persists state transitions, captures output, and records a verified launcher identity for exact user stops. |
 | Run | Records one attempted launch, its trigger, state, exit information, errors, launch snapshot, and captured-log paths. |
 | DailyCompletion | Records a manual completion for one job and one computed daily period. It is intentionally separate from process exit. |
 
@@ -49,6 +49,16 @@ The launch specification is passed directly to `QProcess` as:
 - `arguments`: the explicit argument list;
 - `workingDirectory`: the optional absolute working directory;
 - standard input connected to the null device because jobs are non-interactive.
+
+The OneDragon card also has a separate **Open OneDragon GUI** action. It uses
+the configured launcher and its parent directory with an empty argument list,
+through `QProcess.startDetached`; it creates no Hsiesta `Run`, queue item, or
+completion record. **Run automatically** remains the upstream `-o` headless
+entry point. There is no GUI-display or attach mode, and the GUI action is
+disabled while the same task has an active or queued automatic run. The
+detached GUI is not tracked: Hsiesta cannot detect a GUI opened outside this
+card or reverse-block a later automatic run, so the user must close the
+official GUI before clicking **Run automatically**.
 
 The process is asynchronous and non-blocking for the UI. stdout and stderr are
 drained into separate files and exposed to the run-history dialog. A normal
@@ -112,7 +122,43 @@ nonzero monitor result, so the UI cannot claim a clean completion.
 same time, while a second start of the same job is rejected. An associated MuMu
 executable and instance number form an exclusive resource, preventing MAA and
 MAA_Punish jobs from controlling the same instance concurrently. Output files, handoff
-state, watchdogs, errors, and finalization remain isolated per run.
+state, watchdogs, errors, exact-stop requests, and finalization remain isolated
+per run. When a process starts, the service snapshots its PID, full executable
+path, and a platform process-creation token. A user stop first requests a
+graceful QProcess termination; after a short grace period, only the still-
+verified launcher PID and its current parent-PID descendants may be terminated
+through the native platform API. It never searches for or kills processes by
+image name. If the identity cannot be verified, the stop is recorded as a
+failure and any remaining external process is left for manual inspection. On
+Windows, each capture attempt first reads a system FILETIME cutoff, then takes
+one trusted parent snapshot and immediately opens and holds query/terminate
+handles for that exact root tree. Every opened root/descendant creation token
+must be no newer than that cutoff, and each process keeps its root-relative
+ancestry. A PID reuse, changed parent chain, failed handle/query, or failed
+termination rejects the affected tree; a PID from the initial snapshot is
+never accepted merely because a replacement still has the same parent or
+image. If a genuinely new descendant appears in the fresh parent-chain
+snapshot, Hsiesta closes the held handles and retries the entire capture with a
+new cutoff a bounded number of times. Persistent tree churn is a fail-closed
+stop failure. After child-first/root-last termination, a fresh snapshot must
+also prove that neither the owned root nor a newly spawned child remains;
+otherwise cleanup is reported as a warning/failure. The same held handle is
+used for termination, and all handles are closed in `finally`, so a replacement
+PID cannot be killed by name or by stale PID. The ownership boundary is the
+currently validated process tree captured for this attempt, not a historical
+PID list by itself.
+
+OneDragon has no trusted external stop protocol or worker handoff contract.
+When its launcher exits, the normal result is still `needs_attention`; an
+unverified worker is never followed or stopped by name. Closing the Zenless
+Zone Zero game is therefore not treated as a Hsiesta completion event. Use the
+task-card Stop action when the upstream launcher is still waiting.
+
+During a normal window close, the UI rejects new starts, cancels pending queue
+items, requests stops for all active owned runs, and waits through Qt signals
+and timers for final run persistence before closing SQLite. A stop timeout is
+written as a failed terminal run and the user is warned; abnormal termination
+and power loss are outside this cleanup guarantee.
 
 The implementation is in
 [`application/execution_service.py`](../src/game_control_plane/application/execution_service.py).
@@ -154,7 +200,8 @@ share an instance started during preflight, ownership is transferred to the
 last queued consumer so the instance is not closed between those jobs.
 
 The queue is deliberately in memory. It is not a database table, is not
-resumed after restart, and has no cancel/stop or parallel-execution path. A
+resumed after restart, and can be cancelled during normal application close
+without stopping unrelated manual runs. A
 successful item still leaves its daily status pending until the user marks it
 completed. See [`application/queue_service.py`](../src/game_control_plane/application/queue_service.py).
 
@@ -219,9 +266,10 @@ logs, or settings.
 - End-to-end MAA task verification or assumptions about the current MaaCore
   configuration.
 - Scheduling or background polling.
-- Process-tree termination, cancellation, or a stop button.
 - Parallel queue execution or persisted queue recovery.
 - Automatic verification or automatic daily completion.
+- A global hotkey, system-tray controller, GUI attach mode, or game-process-name
+  watcher for inferring that an external automation has finished.
 - Updater, code signing, or release publication.
 
 ## Source map
@@ -236,6 +284,7 @@ logs, or settings.
 - FOS task-flow monitor: [`integrations/fos_runner.py`](../src/game_control_plane/integrations/fos_runner.py)
 - Zenless Zone Zero OneDragon contract integration: [`integrations/onedragon.py`](../src/game_control_plane/integrations/onedragon.py)
 - OneDragon installation preflight: [`integrations/onedragon_preflight.py`](../src/game_control_plane/integrations/onedragon_preflight.py)
+- Exact owned-process identity and PID-tree supervisor: [`application/process_supervisor.py`](../src/game_control_plane/application/process_supervisor.py)
 - App-data paths: [`platform/paths.py`](../src/game_control_plane/platform/paths.py)
 - Packaging entry point/spec: [`packaging/entrypoint.py`](../packaging/entrypoint.py), [`packaging/game_control_plane.spec`](../packaging/game_control_plane.spec)
 - Windows build wrapper and license placement: [`packaging/build_windows.ps1`](../packaging/build_windows.ps1)

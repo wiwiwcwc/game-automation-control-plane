@@ -82,6 +82,19 @@ class QueueService(QObject):
     def is_job_queued(self, job_id: int) -> bool:
         return self.current_job_id == job_id or job_id in self.queued_job_ids
 
+    def cancel(self) -> None:
+        """Drop pending queue items without starting another run."""
+
+        if not self.active:
+            return
+        self._pending.clear()
+        self._current_job = None
+        self._current_run_id = None
+        self._runtime_contexts.clear()
+        self._state = QueueState.IDLE
+        self.logger.info("Daily queue cancelled")
+        self.state_changed.emit()
+
     def start(
         self,
         *,

@@ -107,8 +107,17 @@ Full-Environment layout, or `resources/config/*.yml` as a compatibility
 layout. Do not mix the two layouts. Do not read or
 rewrite OneDragon YAML/account settings, infer an account allowlist, bundle its
 runtime/models/game files, follow an unverified worker, take over the game
-window, or force-stop by process name. Installed account existence and the
-actual ZZZ daily flow remain user-side verification boundaries.
+window, or force-stop by process name. A user-requested stop may terminate
+only the exact launcher PID tree captured and revalidated for that run. On
+Windows, take a FILETIME cutoff before each trusted root snapshot, hold handles
+for the root tree, and validate creation tokens and continuous root-relative
+ancestry through child-first/root-last termination. A new descendant causes a
+bounded full recapture; a PID reused after the cutoff, parent-chain change,
+handle/query failure, termination failure, or residual tree fails closed
+without falling back to a name kill. If the identity cannot be proved, record a
+stop failure and leave the external process for inspection. Installed
+account existence and the actual ZZZ daily flow remain user-side verification
+boundaries.
 
 ### Data, configuration, and security
 
@@ -174,7 +183,7 @@ python -m pytest
 .\packaging\smoke_test.ps1 -ExecutablePath .\dist\GameAutomationControlPlane\GameAutomationControlPlane.exe
 $iscc = & .\packaging\install_inno_setup.ps1 -InstallDirectory (Join-Path $env:TEMP "hsiesta-inno-setup-7.1.0")
 .\packaging\build_installer.ps1 -IsccPath $iscc
-.\packaging\installer_smoke_test.ps1 -InstallerPath .\dist\Hsiesta-0.1.18-Setup.exe
+.\packaging\installer_smoke_test.ps1 -InstallerPath .\dist\Hsiesta-0.1.19-Setup.exe
 ```
 
 If a non-interactive environment cannot run the installed executable because

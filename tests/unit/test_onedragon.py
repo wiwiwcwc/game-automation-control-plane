@@ -68,6 +68,19 @@ def test_runtime_launch_spec_uses_exact_official_arguments_and_parent_directory(
     assert spec.handoff_process_names == ()
 
 
+def test_gui_launch_spec_uses_exact_launcher_without_automation_arguments(tmp_path: Path):
+    executable = tmp_path / ZZZ_ONEDRAGON_RUNTIME_NAME
+    executable.touch()
+    spec = ZzzOneDragonIntegration().build_gui_launch_spec(
+        make_job(executable, instances="1,2", close_game=True)
+    )
+
+    assert spec.executable == str(executable)
+    assert spec.arguments == ()
+    assert spec.working_directory == str(tmp_path)
+    assert spec.display_command.endswith("OneDragon-RuntimeLauncher.exe")
+
+
 def test_adapter_rejects_unrelated_executable_name(tmp_path: Path):
     executable = tmp_path / "OneDragon.exe"
     executable.touch()

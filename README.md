@@ -18,14 +18,14 @@
 
 休汐只负责编排外部工具，不是游戏客户端、图像识别引擎或通用机器人。它不会下载或捆绑第三方工具；进程正常退出，也不等于日常已经完成。
 
-当前源码版本为 `0.1.18`，具体支持范围和验证边界以项目文档为准。
+当前源码版本为 `0.1.19`，具体支持范围和验证边界以项目文档为准。
 
 ## Windows 下载
 
 ### 一键安装（推荐）
 
 前往 [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases)，下载
-`Hsiesta-0.1.18-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
+`Hsiesta-0.1.19-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
 `%LOCALAPPDATA%\Programs\Hsiesta`，开始菜单快捷方式默认创建，桌面快捷方式可在向导中选择。
 安装器本身不要求管理员权限；应用内部的 `GameAutomationControlPlane.exe` 仍保留
 `requireAdministrator` 清单，因此启动应用时可能出现 UAC，这是安装权限与运行权限的区别。
@@ -70,7 +70,7 @@ EXE 文件名仍保留 `GameAutomationControlPlane`，这是为了兼容已有�
 | MAA / `maa-cli` | 明日方舟 / Arknights | 版本、任务、dry-run、ADB 预检；受控每日任务；按所有权启动和监控 MuMu |
 | MAA_Punish / FOS | 战双帕弥什 / Punishing: Gray Raven | 读取已保存配置、跟踪任务流，并按精确路径处理 FOS 和 MuMu |
 | OK-WW | 鸣潮 / Wuthering Waves | 任务序号、`-t <index>`、可选 `-e`，以及受限的 worker 交接监控 |
-| 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | 连接已安装的 RuntimeLauncher 或经典 Launcher，显式调用一条龙入口；可选账号实例和 `-c` |
+| 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | “打开界面”启动官方 GUI；“自动运行”使用无界面的 `-o`，可选账号实例和 `-c`；支持本次运行的精确停止 |
 | Custom CLI | 其他外部脚本 | 明确的解释器 / 可执行文件、逐项参数、工作目录、输出和历史 |
 
 OneDragon 目前支持绝区零版本，使用前需要先安装并配置对应的 OneDragon。
@@ -96,6 +96,16 @@ OneDragon 目前支持绝区零版本，使用前需要先安装并配置对应�
 ### OneDragon 目录应该怎么选？
 
 使用经典 OneDragon Full-Environment 布局时，请选择同时包含 `OneDragon-Launcher.exe`、`config/project.yml` 和 `config/repository.yml` 的完整目录；兼容布局则需要完整的 `resources/config/*.yml`。不要移动 YAML 文件。
+
+### OneDragon 的“打开界面”和“自动运行”有什么区别？
+
+任务卡上的“打开界面”会用已配置的启动器路径和安装目录、且不带参数启动官方 GUI；它不会创建 Hsiesta 运行记录。你可以在官方 GUI 中查看、暂停或手动开始。“自动运行”则调用官方 `-o` 无界面入口，没有同时显示 GUI 或附着到当前运行的开关。Hsiesta 会在本任务已有活动或排队中的自动任务时禁用这个按钮，但独立启动的官方 GUI 不会被 Hsiesta 跟踪；如果你从别处打开了 GUI，Hsiesta 无法检测并反向阻止，请先关闭官方 GUI，再点“自动运行”。
+
+OneDragon 没有可供 Hsiesta 信任的外部停止协议，因此 Hsiesta 的“停止”只针对本次自动运行已验证、由 Hsiesta 启动的精确启动器 PID 树，不会按 `OneDragon`、`python` 或 `ZenlessZoneZero.exe` 名称广泛结束进程。如果关闭绝区零后 OneDragon 仍在等待，请点击任务卡上的“停止”，并在提示失败或外部进程可能残留时人工检查。
+
+### 关闭 Hsiesta 时会怎样？
+
+正常关闭窗口时，如果有活动任务，Hsiesta 会先询问，并异步请求停止本次拥有的外部进程；运行记录完成持久化后才关闭 SQLite。停止超时会记录失败原因并继续退出，不能保证异常终止、断电或强制杀进程后的外部清理。
 
 ### 遇到启动失败先看什么？
 

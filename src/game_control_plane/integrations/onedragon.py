@@ -232,6 +232,26 @@ class ZzzOneDragonIntegration:
             # contract here, so Hsiesta monitors only this launcher.
         )
 
+    def build_gui_launch_spec(self, job: Job) -> LaunchSpec:
+        """Build the official no-argument launcher invocation for its GUI.
+
+        This is deliberately separate from the automation launch spec. The
+        GUI is an independent upstream process: it does not create a Hsiesta
+        Run and cannot attach to an existing ``-o`` invocation.
+        """
+
+        config = job.runner_config
+        result = self.validate_config(config)
+        if not result.valid:
+            raise ValueError(" ".join(result.errors))
+        executable = str(config["executable_path"]).strip()
+        return LaunchSpec(
+            executable=executable,
+            arguments=(),
+            working_directory=str(Path(executable).parent),
+            display_command=subprocess.list2cmdline((executable,)),
+        )
+
 
 # Descriptive alias for callers that do not need to repeat the ZZZ scope. The
 # persisted runner type remains explicit so this cannot be mistaken for a

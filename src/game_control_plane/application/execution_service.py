@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +25,12 @@ from .process_handoff import (
     WorkerLocator,
     default_worker_locator,
 )
+from .process_supervisor import (
+    ProcessIdentity,
+    ProcessSupervisor,
+    default_process_supervisor,
+    process_identity_dict,
+)
 from .post_run_actions import PostRunAction, create_post_run_action, mumu_resource_key
 
 
@@ -43,6 +50,11 @@ class _ActiveProcess:
     resource_key: tuple[str, str, int] | None = None
     error_message: str | None = None
     forced_error_summary: str | None = None
+    expected_executable: str | None = None
+    process_identity: ProcessIdentity | None = None
+    stop_requested: bool = False
+    stop_reason: str | None = None
+    stop_failure_summary: str | None = None
     finalized: bool = False
 
 
@@ -75,6 +87,9 @@ class ExecutionService(QObject):
         result_auditor: Callable[
             [Job, str | Path, str | Path], RunResultAssessment
         ] = assess_run_result,
+        process_supervisor: ProcessSupervisor | None = None,
+        stop_grace_ms: int = 3_000,
+        summary_text: Callable[..., str] | None = None,
     ):
         super().__init__(parent)
         self.store = store
@@ -91,10 +106,44 @@ class ExecutionService(QObject):
         self.post_run_action_factory = post_run_action_factory
         self.post_run_action_timeout_ms = max(1, post_run_action_timeout_ms)
         self.result_auditor = result_auditor
+        self.process_supervisor = process_supervisor or default_process_supervisor()
+        self.stop_grace_ms = max(0, stop_grace_ms)
+        self.summary_text = summary_text
+        self._accepting_runs = True
         self._handoff_timer = QTimer(self)
         self._handoff_timer.setInterval(handoff_poll_interval_ms)
         self._handoff_timer.timeout.connect(self._poll_handoff)
         self._active: dict[str, _ActiveProcess] = {}
+
+    def _summary(self, key: str, **values: object) -> str:
+        """Resolve user-visible lifecycle summaries through the UI locale."""
+
+        if self.summary_text is None:
+            return key
+        try:
+            return self.summary_text(key, **values)
+        except Exception:
+            self.logger.exception("Could not localize execution summary %s", key)
+            return key
+
+    def _localize_watchdog_summary(self, summary: str) -> str:
+        """Translate the two built-in MuMu loss summaries for the UI locale."""
+
+        if self.summary_text is None:
+            return summary
+        closed = re.fullmatch(
+            r"MuMu instance (\d+) was closed\. The associated automation was stopped\.",
+            summary,
+        )
+        if closed:
+            return self._summary("run.emulator_closed", instance=closed.group(1))
+        android = re.fullmatch(
+            r"Android stopped in MuMu instance (\d+)\. The associated automation was stopped\.",
+            summary,
+        )
+        if android:
+            return self._summary("run.android_stopped", instance=android.group(1))
+        return summary
 
     @property
     def active_run(self) -> Run | None:
@@ -115,12 +164,23 @@ class ExecutionService(QObject):
     def is_job_running(self, job_id: int) -> bool:
         return job_id in self.active_job_ids
 
+    @property
+    def accepting_runs(self) -> bool:
+        return self._accepting_runs
+
+    def set_accepting_runs(self, accepting: bool) -> None:
+        """Reject new starts while an orderly application shutdown is pending."""
+
+        self._accepting_runs = bool(accepting)
+
     def start(
         self,
         job: Job,
         trigger_type: str = TriggerType.MANUAL.value,
         runtime_context: dict[str, object] | None = None,
     ) -> Run:
+        if not self._accepting_runs:
+            raise RuntimeError("the application is closing")
         if job.id is not None and self.is_job_running(int(job.id)):
             raise RuntimeError("this automation is already running")
         resource_key = mumu_resource_key(job)
@@ -240,6 +300,7 @@ class ExecutionService(QObject):
             emulator_watchdog=emulator_watchdog,
             post_run_action=post_run_action,
             resource_key=resource_key,
+            expected_executable=spec.executable,
         )
         self._active[run.id] = active
         if active.emulator_watchdog is not None:
@@ -268,6 +329,7 @@ class ExecutionService(QObject):
         run = self.store.update_run(run_id, state=RunState.RUNNING)
         active.run = run
         self._write_metadata(run)
+        self._capture_process_identity(active)
         if active.handoff_spec is not None:
             launcher_pid = int(active.process.processId())
             if launcher_pid > 0:
@@ -285,6 +347,220 @@ class ExecutionService(QObject):
         if active.emulator_watchdog is not None:
             active.emulator_watchdog.start()
         self.run_started.emit(run_id)
+        if active.stop_requested:
+            self._request_graceful_stop(active)
+
+    def _capture_process_identity(self, active: _ActiveProcess) -> None:
+        if active.expected_executable is None:
+            return
+        try:
+            pid = int(active.process.processId())
+        except (RuntimeError, TypeError, ValueError):
+            pid = 0
+        if pid <= 0:
+            return
+        try:
+            identity = self.process_supervisor.capture(pid, active.expected_executable)
+        except Exception:
+            self.logger.exception("Could not inspect process identity for run %s", active.run.id)
+            identity = None
+        active.process_identity = identity
+        process_snapshot: dict[str, object] = {
+            "pid": pid,
+            "expected_executable": active.expected_executable,
+            "verified": identity is not None,
+        }
+        if identity is not None:
+            process_snapshot.update(process_identity_dict(identity))
+        else:
+            self.logger.warning(
+                "Could not verify the launcher image for run %s; exact stop will be refused",
+                active.run.id,
+            )
+        try:
+            active.run = self.store.update_run_launch_snapshot(
+                active.run.id,
+                {
+                    "owned_process": process_snapshot,
+                    "root_pid": pid,
+                    "root_executable": active.expected_executable,
+                    "root_process_token": identity.token if identity is not None else None,
+                },
+            )
+            self._write_metadata(active.run)
+        except Exception:
+            self.logger.exception("Could not persist process identity for run %s", active.run.id)
+
+    def stop(self, run_id: str, reason: str | None = None) -> bool:
+        """Stop one exact active run without claiming success or completion."""
+
+        active = self._get_active(run_id)
+        if active is None or active.finalized:
+            return False
+        if active.stop_requested:
+            return True
+        active.stop_requested = True
+        active.stop_reason = reason or self._summary("run.stop_requested")
+        self.logger.warning("Stopping run %s: %s", run_id, active.stop_reason)
+        state = active.process.state()
+        if state == QProcess.ProcessState.NotRunning:
+            QTimer.singleShot(0, lambda identifier=run_id: self._finalize_stopped(identifier))
+        elif state == QProcess.ProcessState.Starting:
+            # The started signal captures and verifies the PID before asking
+            # the process to stop. A short timer covers a launcher that never
+            # reaches Running and lets the close-event timeout record failure.
+            QTimer.singleShot(
+                self.stop_grace_ms,
+                lambda identifier=run_id: self._force_stop_after_grace(identifier),
+            )
+        else:
+            self._request_graceful_stop(active)
+            QTimer.singleShot(
+                self.stop_grace_ms,
+                lambda identifier=run_id: self._force_stop_after_grace(identifier),
+            )
+        return True
+
+    def stop_all(self, reason: str | None = None) -> tuple[str, ...]:
+        identifiers = tuple(active.run.id for active in self._active.values())
+        for identifier in identifiers:
+            self.stop(identifier, reason=reason)
+        return identifiers
+
+    def force_finalize_stop_timeout(self, run_id: str, summary: str | None = None) -> bool:
+        """Persist a stop timeout so orderly application shutdown can finish."""
+
+        active = self._get_active(run_id)
+        if active is None or active.finalized or not active.stop_requested:
+            return False
+        active.stop_failure_summary = summary or self._summary(
+            "run.stop_application_timeout"
+        )
+        self._finalize_stopped(run_id)
+        return True
+
+    def _request_graceful_stop(self, active: _ActiveProcess) -> None:
+        if active.finalized:
+            return
+        try:
+            if active.process.state() != QProcess.ProcessState.NotRunning:
+                active.process.terminate()
+        except RuntimeError as exc:
+            active.stop_failure_summary = self._summary(
+                "run.stop_graceful_request_failed", error=str(exc)
+            )
+
+    def _force_stop_after_grace(self, run_id: str) -> None:
+        active = self._get_active(run_id)
+        if active is None or active.finalized or not active.stop_requested:
+            return
+        state = active.process.state()
+        if state == QProcess.ProcessState.NotRunning:
+            self._finalize_stopped(run_id)
+            return
+        if state == QProcess.ProcessState.Starting:
+            active.stop_failure_summary = self._summary(
+                "run.stop_start_timeout"
+            )
+            self._finalize_stopped(run_id)
+            return
+        identity = active.process_identity
+        try:
+            current_pid = int(active.process.processId())
+        except (RuntimeError, TypeError, ValueError):
+            current_pid = 0
+        if identity is None or current_pid != identity.pid:
+            active.stop_failure_summary = self._summary(
+                "run.stop_identity_missing"
+            )
+            self._finalize_stopped(run_id)
+            return
+        try:
+            verified = self.process_supervisor.verify(identity)
+        except Exception:
+            self.logger.exception("Could not revalidate process identity for run %s", run_id)
+            verified = False
+        if not verified:
+            active.stop_failure_summary = self._summary(
+                "run.stop_identity_changed"
+            )
+            self._finalize_stopped(run_id)
+            return
+        try:
+            result = self.process_supervisor.terminate_tree(identity)
+        except Exception as exc:  # pragma: no cover - defensive platform boundary
+            self.logger.exception("Could not terminate owned process tree for run %s", run_id)
+            result = None
+            active.stop_failure_summary = self._summary(
+                "run.stop_tree_exception", error=str(exc)
+            )
+        if result is not None and result.success:
+            self.logger.info(
+                "Force-stopped owned process tree for run %s: %s",
+                run_id,
+                result.attempted_pids,
+            )
+            # Keep Qt's QProcess state in sync with the native termination.
+            # This targets the same verified root PID, never an image name.
+            try:
+                if active.process.state() != QProcess.ProcessState.NotRunning:
+                    active.process.kill()
+            except RuntimeError as exc:
+                active.stop_failure_summary = self._summary(
+                    "run.stop_qprocess_failed", error=str(exc)
+                )
+        elif result is not None:
+            active.stop_failure_summary = self._summary(
+                "run.stop_tree_failed",
+                summary=result.summary
+                or self._summary("run.stop_tree_failed_detail"),
+            )
+            # A failed native tree validation is deliberately fail-closed.
+            # Do not fall back to QProcess.kill after a child/token/parent
+            # anomaly; that would partially terminate a tree the supervisor
+            # explicitly refused to prove.  The exact failure remains visible
+            # and the shutdown timer will finalize the run as STOP_FAILED.
+        if active.stop_failure_summary is not None and active.process.state() == QProcess.ProcessState.NotRunning:
+            self._finalize_stopped(run_id)
+            return
+        QTimer.singleShot(
+            self.stop_grace_ms,
+            lambda identifier=run_id: self._stop_timeout(identifier),
+        )
+
+    def _stop_timeout(self, run_id: str) -> None:
+        active = self._get_active(run_id)
+        if active is None or active.finalized or not active.stop_requested:
+            return
+        if active.process.state() == QProcess.ProcessState.NotRunning:
+            self._finalize_stopped(run_id)
+            return
+        if active.stop_failure_summary is None:
+            active.stop_failure_summary = self._summary(
+                "run.stop_timeout"
+            )
+        self._finalize_stopped(run_id)
+
+    def _finalize_stopped(self, run_id: str) -> None:
+        active = self._get_active(run_id)
+        if active is None or active.finalized or not active.stop_requested:
+            return
+        if active.stop_failure_summary is not None:
+            summary = active.stop_failure_summary
+            self._finalize(
+                run_id,
+                state=RunState.FAILED,
+                error_kind=ErrorKind.STOP_FAILED.value,
+                error_summary=summary,
+            )
+            return
+        self._finalize(
+            run_id,
+            state=RunState.INTERRUPTED,
+            error_kind=ErrorKind.INTERRUPTED.value,
+            error_summary=active.stop_reason
+            or self._summary("run.stop_before_completion"),
+        )
 
     def _on_output(self, run_id: str, stream: str) -> None:
         active = self._get_active(run_id)
@@ -320,6 +596,12 @@ class ExecutionService(QObject):
         active.error_message = message
         self.logger.warning("QProcess error for run %s: %s", run_id, message)
         if error == QProcess.ProcessError.FailedToStart:
+            if active.stop_requested:
+                active.stop_reason = active.stop_reason or self._summary(
+                    "run.stop_before_start"
+                )
+                self._finalize_stopped(run_id)
+                return
             self._finalize(
                 run_id,
                 state=RunState.FAILED,
@@ -333,6 +615,9 @@ class ExecutionService(QObject):
             return
         self._on_output(run_id, "stdout")
         self._on_output(run_id, "stderr")
+        if active.stop_requested:
+            self._finalize_stopped(run_id)
+            return
         if active.forced_error_summary is not None:
             self._finalize(
                 run_id,
@@ -377,7 +662,7 @@ class ExecutionService(QObject):
         active = self._get_active(run_id)
         if active is None or active.finalized or active.forced_error_summary is not None:
             return
-        active.forced_error_summary = summary
+        active.forced_error_summary = self._localize_watchdog_summary(summary)
         self.logger.warning("Stopping run %s because its emulator was lost: %s", run_id, summary)
         if active.process.state() != QProcess.ProcessState.NotRunning:
             active.process.terminate()
@@ -511,9 +796,12 @@ class ExecutionService(QObject):
         process.setArguments(list(action.arguments))
         process.setStandardInputFile(QProcess.nullDevice())
         active.process = process
+        active.expected_executable = action.executable
+        active.process_identity = None
         banner = f"\n[Hsiesta] {action.description}: {action.display_command}\n".encode()
         active.stdout_file.write(banner)
         active.stdout_file.flush()
+        process.started.connect(lambda: self._capture_process_identity(active))
         process.readyReadStandardOutput.connect(lambda: self._on_output(run_id, "stdout"))
         process.readyReadStandardError.connect(lambda: self._on_output(run_id, "stderr"))
         process.errorOccurred.connect(lambda error: self._on_post_run_action_error(run_id, error))

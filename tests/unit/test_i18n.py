@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QApplication
 from game_control_plane.domain.models import DailyStatus, RunState
 from game_control_plane.ui.dashboard import Dashboard
 from game_control_plane.ui.i18n import (
+    _EN_US,
+    _ZH_CN,
     LanguageManager,
     onedragon_preflight_message_text,
     preflight_progress_text,
@@ -40,6 +42,10 @@ def test_default_language_is_chinese_and_language_choice_persists(tmp_path):
     )
     assert restored.language == "en_US"
     assert restored.text("button.run") == "Run"
+
+
+def test_translation_catalogs_have_exact_key_parity():
+    assert set(_ZH_CN) == set(_EN_US)
 
 
 def test_all_states_and_daily_statuses_have_chinese_display_text():

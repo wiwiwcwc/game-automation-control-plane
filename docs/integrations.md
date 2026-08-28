@@ -16,7 +16,7 @@ This page distinguishes two kinds of evidence:
 | MAA GUI / `maa-cli` | Managed daily-task editor, result audit, and MuMu ownership-aware startup/cleanup; live full daily unverified | A locally generated managed task passes `run control_plane_daily_job_2 --batch --dry-run` with all six task groups. Tests cover generation, current Fight parameters, incomplete-result detection, and cleanup suppression. |
 | MAA_Punish / FOS | Guided saved-config launch, log-based completion, and optional exact-process cleanup; live task observed | A live FOS task reached the complete-success evidence sequence and ownership-based MuMu shutdown. Tests cover command handoff, exact FOS cleanup, cleanup failure, fresh-log evidence, and emulator ownership. |
 | OK-WW | Locally verified launcher handoff and close-option wiring | This repository validates an explicit executable and positive task index, builds `-t <index>` with optional `-e`, and follows the Windows launcher to its direct `pythonw.exe`/`python.exe` worker inside the same OK-WW installation. |
-| Zenless Zone Zero OneDragon | Launcher adapter and conservative preflight; live game unverified | Local tests cover launcher discovery, Runtime/classic layouts, explicit arguments, editor round-trip, and exit-0 review semantics. The installed upstream version, account existence, and full daily flow still need user-side verification. |
+| Zenless Zone Zero OneDragon | Launcher adapter, GUI entry, exact owned-run stop, and conservative preflight; live game unverified | Local tests cover launcher discovery, Runtime/classic layouts, explicit arguments, no-argument GUI launch, exact PID/run stop, editor round-trip, and exit-0 review semantics. The installed upstream version, account existence, and full daily flow still need user-side verification. |
 
 ## Custom CLI — supported
 
@@ -315,16 +315,56 @@ contents, or asks the user to move YAML files. The preflight constructs an
 explicit argument list and working directory but never starts the game or
 launcher.
 
+### GUI and automatic-run boundary
+
+The OneDragon task card exposes two deliberately separate actions. **Open
+OneDragon GUI** launches the exact configured launcher from its parent
+directory with no arguments, which is the upstream GUI entry point. It is a
+detached UI action: it creates no Hsiesta `Run`, does not enter the daily queue,
+and is not tracked for completion. The user can start, pause, or inspect the
+task in that official GUI. **Run automatically** uses the documented `-o`
+arguments above and is headless. Hsiesta does not provide a GUI-display switch
+or fake an attach protocol; the GUI action is blocked while the same task has
+an active or queued automatic run so two independent OneDragon contexts are
+not launched accidentally. This protection only covers Hsiesta's own task
+card: a detached GUI is not tracked, and a GUI opened outside Hsiesta cannot
+be detected or reverse-blocked. Close the official GUI before starting the
+headless automatic run.
+
 ### Result and safety boundary
 
 OneDragon has no reliable external completion protocol that this release can
 audit. A clean launcher exit therefore becomes `needs_attention`, retains
 stdout/stderr, and never writes `DailyCompletion`; the user must review the
 OneDragon log and use **Mark completed** if the in-game daily really finished.
-The adapter does not follow an asynchronous worker, force-stop by process name,
-close the game itself, take over the game window, or modify OneDragon YAML and
-account settings. The complete live ZZZ daily flow and behavior of every
-installed OneDragon version remain unverified.
+When the user presses **Stop**, Hsiesta first requests a graceful QProcess stop.
+If the launcher remains alive, it records the root PID, full executable path,
+and process-creation token captured at launch, then uses a short-grace native
+PID-tree stop only after revalidating that identity. On Windows, the stop
+holds handles opened from one trusted root snapshot, checks every held
+creation token and continuous root-relative parent chain, and terminates
+child-first/root-last through those same handles. Each Windows capture attempt
+gets a system FILETIME cutoff before its snapshot; every root/descendant opened
+from that snapshot must have a creation token no newer than the cutoff. A PID
+from that snapshot is not accepted merely because a replacement has the same
+parent or image. A new descendant found by the fresh parent-chain check causes
+all handles to close and the entire capture to retry with a new cutoff, up to a
+small fixed limit; persistent churn is fail-closed. After termination, a fresh
+snapshot must show that the owned root and all descendants are gone, otherwise
+the result is a stop failure/cleanup warning. A PID reuse, changed parent
+chain, handle/query failure, or termination failure is fail-closed. A stop is
+scoped to the exact run ID and its owned launcher tree; it is never a
+name-based kill and never affects another task. If the root PID cannot be
+revalidated, the run is recorded as a stop failure and any external process is
+left for manual review. “Owned tree” means the currently validated tree for one
+capture attempt, not a historical list of PIDs.
+The adapter does not follow an asynchronous worker, close the game itself, take
+over the game window, or modify OneDragon YAML and account settings. If the
+launcher exits while an unverified worker may remain, Hsiesta records
+`needs_attention` and does not follow or terminate that worker. It does not
+infer completion from `ZenlessZoneZero.exe` closing. The complete live ZZZ
+daily flow and behavior of every installed OneDragon version remain
+unverified.
 
 ## Evidence required for future integration work
 

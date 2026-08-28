@@ -5,7 +5,7 @@ AGPL-3.0-only. Keep the root `LICENSE` file in the first public commit and in
 every distributed Windows package.
 
 This document records the original first-publication workflow. The repository
-is public and the current source version is `v0.1.18`; use the steps below as a
+is public and the current source version is `v0.1.19`; use the steps below as a
 checklist for future releases, not as a request to recreate the repository.
 
 ## 1. Protect the commit email
