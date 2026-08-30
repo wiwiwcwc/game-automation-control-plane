@@ -86,6 +86,16 @@ def test_trusted_snapshot_rejects_duplicate_or_reachable_cycle():
     assert _trusted_tree_snapshot(((100, 101), (101, 100)), 100) is None
 
 
+def test_trusted_snapshot_ignores_windows_system_idle_pid_zero():
+    tree = _trusted_tree_snapshot(
+        ((0, 0), (100, 1), (101, 100), (102, 101)),
+        100,
+    )
+
+    assert tree is not None
+    assert tuple(item.pid for item in tree) == (100, 101, 102)
+
+
 @pytest.mark.skipif(os.name != "nt", reason="exercises the Windows kernel adapter")
 class TestWindowsProcessSupervisorWithFakeKernel:
     """Exercise native handle lifetime without touching a real user process."""

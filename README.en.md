@@ -17,14 +17,14 @@ Support will expand gradually as each tool's launch, monitoring, and completion 
 
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.19`.
+The current source version is `0.1.20`.
 
 ## Windows download
 
 ### One-click installation (recommended)
 
 Open [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases), download
-`Hsiesta-0.1.19-Setup.exe`, double-click it, and follow the wizard. The installer
+`Hsiesta-0.1.20-Setup.exe`, double-click it, and follow the wizard. The installer
 defaults to the current user's `%LOCALAPPDATA%\Programs\Hsiesta`; a Start Menu
 shortcut is created by default and the desktop shortcut is optional. The installer
 itself does not require administrator privileges, while the existing
@@ -73,7 +73,7 @@ Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by
 
 | Tool / integration | Game | Current scope |
 | --- | --- | --- |
-| MAA / `maa-cli` | Arknights | Version, task, dry-run, and ADB preflight; managed daily tasks; ownership-aware MuMu monitoring |
+| MAA / `maa-cli` | Arknights | Version, task, dry-run, and ADB preflight; managed-task auditing; manual review for external tasks after exit; ownership-aware MuMu monitoring |
 | MAA_Punish / FOS | Punishing: Gray Raven | Saved-config discovery, task-flow monitoring, and exact-path FOS/MuMu handling |
 | OK-WW | Wuthering Waves | Positive task index, `-t <index>`, optional `-e`, and constrained worker handoff monitoring |
 | Zenless Zone Zero OneDragon | Zenless Zone Zero | “Open OneDragon GUI” starts the official GUI; “Run automatically” uses headless `-o`, with optional instance and `-c` arguments, plus exact stop for the owned run |
@@ -90,7 +90,7 @@ No. Hsiesta schedules and monitors external tools that you have installed. It do
 
 ### Why can a run need review after exiting with code 0?
 
-Exit code 0 only means that the external process ended normally. MAA requires complete task evidence and at least one real battle; OneDragon has no completion signal that Hsiesta can trust, so a clean exit still needs log review and manual confirmation.
+Exit code 0 only means that the external process ended normally. Managed MAA tasks require complete task evidence and at least one real battle; an external MAA task has an unknown structure, so even exit code 0 becomes **needs attention** and skips automatic emulator cleanup. OneDragon has no completion signal that Hsiesta can trust, so a clean exit still needs log review and manual confirmation.
 
 ### What has been verified for each integration?
 

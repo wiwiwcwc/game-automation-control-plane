@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable
 
@@ -125,6 +125,14 @@ class ExecutionService(QObject):
         except Exception:
             self.logger.exception("Could not localize execution summary %s", key)
             return key
+
+    def _localize_assessment(self, assessment: RunResultAssessment) -> RunResultAssessment:
+        if assessment.localization_key is None or self.summary_text is None:
+            return assessment
+        return replace(
+            assessment,
+            summary=self._summary(assessment.localization_key),
+        )
 
     def _localize_watchdog_summary(self, summary: str) -> str:
         """Translate the two built-in MuMu loss summaries for the UI locale."""
@@ -730,10 +738,12 @@ class ExecutionService(QObject):
             )
         elif outcome.exit_code == 0:
             try:
-                assessment = self.result_auditor(
-                    active.job,
-                    active.run.stdout_path or "",
-                    active.run.stderr_path or "",
+                assessment = self._localize_assessment(
+                    self.result_auditor(
+                        active.job,
+                        active.run.stdout_path or "",
+                        active.run.stderr_path or "",
+                    )
                 )
             except Exception:
                 self.logger.exception("Could not verify automation result for run %s", run_id)
@@ -753,7 +763,10 @@ class ExecutionService(QObject):
                     state=RunState.NEEDS_ATTENTION,
                     exit_code=outcome.exit_code,
                     exit_status=ExitStatus.NORMAL.value,
-                    error_kind=ErrorKind.AUTOMATION_INCOMPLETE.value,
+                    error_kind=(
+                        assessment.diagnostic_code
+                        or ErrorKind.AUTOMATION_INCOMPLETE.value
+                    ),
                     error_summary=assessment.summary,
                 )
                 return

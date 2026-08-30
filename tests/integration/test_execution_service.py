@@ -20,12 +20,13 @@ from game_control_plane.application.process_supervisor import (
     ProcessTerminationResult,
 )
 from game_control_plane.application.queue_service import QueueService, QueueState
-from game_control_plane.domain.models import DailyStatus, RunState
+from game_control_plane.domain.models import DailyStatus, ErrorKind, RunState
 from game_control_plane.integrations.base import LaunchSpec, ValidationResult
 from game_control_plane.integrations.custom_cli import CustomCliIntegration
 from game_control_plane.integrations.registry import IntegrationRegistry
 from game_control_plane.persistence.database import Database
 from game_control_plane.persistence.store import Store
+from game_control_plane.ui.i18n import LanguageManager
 
 
 _APP: QApplication | None = None
@@ -427,7 +428,7 @@ def test_onedragon_clean_exit_needs_manual_completion_review(tmp_path: Path):
     assert finished is not None
     assert finished.state == RunState.NEEDS_ATTENTION
     assert finished.exit_code == 0
-    assert finished.error_kind == "automation_incomplete"
+    assert finished.error_kind == ErrorKind.AUTOMATION_INCOMPLETE.value
     assert "cannot verify" in (finished.error_summary or "")
     assert "manually" in (finished.error_summary or "")
     assert store.daily_status(job) == DailyStatus.PENDING
@@ -606,9 +607,128 @@ def test_result_needing_attention_skips_post_run_cleanup(tmp_path: Path):
     assert cleanup_calls == ["created"]
     assert finished is not None
     assert finished.state == RunState.NEEDS_ATTENTION
-    assert finished.error_kind == "automation_incomplete"
+    assert finished.error_kind == ErrorKind.AUTOMATION_INCOMPLETE.value
     assert "left open" in (finished.error_summary or "")
     assert "cleanup must not run" not in Path(finished.stdout_path).read_text()
+
+
+def test_external_maa_clean_exit_needs_review_and_skips_cleanup(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    cleanup_calls: list[str] = []
+
+    def cleanup(_job, _context):
+        cleanup_calls.append("created")
+        return PostRunAction(
+            executable=sys.executable,
+            arguments=(str(fixture), "--mode", "success"),
+            display_command="external MAA cleanup must not run",
+            description="Close MuMu instance 1",
+        )
+
+    language = LanguageManager("zh_CN", persist=False)
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([SleepingMaaIntegration(fixture, seconds=0)]),
+        post_run_action_factory=cleanup,
+        emulator_watchdog_factory=lambda _job, _parent: None,
+        summary_text=language.text,
+    )
+    job_id = store.save_job(
+        game_name="Arknights",
+        name="External daily",
+        runner_type="maa_cli",
+        runner_config_version=1,
+        runner_config={
+            "config_version": 1,
+            "task_mode": "external",
+            "task_name": "daily",
+            "auto_start_emulator": True,
+            "emulator_executable_path": "C:/MuMu/mumu-cli.exe",
+            "emulator_instance_index": 1,
+            "close_emulator_after_run": True,
+        },
+        timezone_id="UTC",
+        reset_minute=240,
+    )
+    job = store.get_job(job_id)
+    assert job is not None
+    app_instance()
+    loop = QEventLoop()
+    service.run_finished.connect(loop.quit)
+
+    run = service.start(
+        job,
+        runtime_context={"emulator_started_by_control_plane": True},
+    )
+    QTimer.singleShot(5_000, loop.quit)
+    loop.exec()
+
+    finished = store.get_run(run.id)
+    assert finished is not None
+    assert finished.state == RunState.NEEDS_ATTENTION
+    assert finished.exit_code == 0
+    assert finished.error_kind == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value
+    assert "外部 MAA 任务已正常退出" in (finished.error_summary or "")
+    assert "自动关闭模拟器已跳过" in (finished.error_summary or "")
+    assert cleanup_calls == ["created"]
+    assert "external MAA cleanup must not run" not in Path(finished.stdout_path).read_text()
+    assert store.daily_status(job) == DailyStatus.PENDING
+
+
+def test_external_maa_attention_advances_queue_by_exact_run_id(tmp_path: Path):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([SleepingMaaIntegration(fixture, seconds=0)]),
+    )
+    job_ids = [
+        store.save_job(
+            game_name="Arknights",
+            name=name,
+            runner_type="maa_cli",
+            runner_config_version=1,
+            runner_config={
+                "config_version": 1,
+                "task_mode": "external",
+                "task_name": "daily",
+            },
+            timezone_id="UTC",
+            reset_minute=240,
+        )
+        for name in ("First external", "Second external")
+    ]
+    jobs = [store.get_job(job_id) for job_id in job_ids]
+    assert all(jobs)
+
+    queue = QueueService(store, service)
+    started_ids: list[int] = []
+    queue.item_started.connect(started_ids.append)
+    app_instance()
+    loop = QEventLoop()
+    queue.queue_finished.connect(loop.quit)
+
+    assert queue.start()
+    assert queue.current_job_id == jobs[0].id
+    service.run_finished.emit("stale-run-id")
+    assert queue.current_job_id == jobs[0].id
+
+    QTimer.singleShot(5_000, loop.quit)
+    loop.exec()
+
+    assert started_ids == [jobs[0].id, jobs[1].id]
+    assert queue.state == QueueState.IDLE
+    assert queue.current_run_id is None
+    for job in jobs:
+        run = store.latest_run(job.id)
+        assert run is not None
+        assert run.state == RunState.NEEDS_ATTENTION
+        assert run.exit_code == 0
+        assert run.error_kind == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value
+        assert store.daily_status(job) == DailyStatus.PENDING
 
 
 def test_same_mumu_instance_is_exclusive_while_other_jobs_may_run(tmp_path: Path):
@@ -650,7 +770,7 @@ def test_same_mumu_instance_is_exclusive_while_other_jobs_may_run(tmp_path: Path
     service.run_finished.connect(loop.quit)
     QTimer.singleShot(5_000, loop.quit)
     loop.exec()
-    assert store.get_run(run.id).state == RunState.EXITED
+    assert store.get_run(run.id).state == RunState.NEEDS_ATTENTION
 
 
 def test_failed_main_process_does_not_start_post_run_cleanup(tmp_path: Path):

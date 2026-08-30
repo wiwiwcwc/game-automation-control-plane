@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.19 implementation, not a promise about future
+This document describes the 0.1.20 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -65,8 +65,10 @@ drained into separate files and exposed to the run-history dialog. A normal
 exit with code 0 usually produces `exited`; a nonzero exit or process crash
 produces `failed`. Managed MAA tasks add a post-exit output audit: each enabled
 task needs a completed summary and an enabled Fight task needs a positive
-battle count. Missing evidence produces `needs_attention` with error kind
-`automation_incomplete`. Invalid configuration and failed-to-start paths also
+battle count. External MAA tasks have an unknown, user-maintained structure, so
+a clean exit is recorded as `needs_attention` for manual log review instead of
+verified success. Missing evidence produces `needs_attention` with error kind
+`automation_incomplete`; invalid configuration and failed-to-start paths also
 produce a durable failed run. None of those outcomes writes a
 `DailyCompletion` row.
 

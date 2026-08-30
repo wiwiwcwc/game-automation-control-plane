@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is an early-stage project, and `v0.1.19` is its current source
+This repository is an early-stage project, and `v0.1.20` is its current source
 version. By submitting a contribution,
 you agree to license it under the project's
 [GNU Affero General Public License v3.0 only](LICENSE).

@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import json
+
 from game_control_plane.application.maa_result_audit import (
+    assess_external_maa_output,
     assess_managed_maa_output,
     assess_onedragon_output,
+    assess_run_result,
 )
+from game_control_plane.domain.models import ErrorKind, Job
+
 from game_control_plane.integrations.maa_managed_task import default_managed_daily
 
 
@@ -13,6 +19,22 @@ def managed_config() -> dict[str, object]:
         "task_name": "control_plane_test",
         "managed_daily": default_managed_daily(),
     }
+
+
+def maa_job(config: dict[str, object]) -> Job:
+    return Job(
+        id=1,
+        game_id=1,
+        game_name="Arknights",
+        name="Daily",
+        runner_type="maa_cli",
+        runner_config_version=1,
+        runner_config_json=json.dumps(config),
+        enabled=True,
+        queue_order=1,
+        timezone_id="UTC",
+        reset_minute=240,
+    )
 
 
 def successful_summary() -> str:
@@ -31,6 +53,66 @@ Fight 1-7 6 times, drops:
 
 def test_managed_maa_success_requires_all_summaries_and_a_real_battle():
     result = assess_managed_maa_output(managed_config(), successful_summary())
+    assert not result.needs_attention
+
+
+def test_external_maa_exit_zero_requires_manual_review():
+    result = assess_external_maa_output("Summary\n", "")
+
+    assert result.needs_attention
+    assert result.localization_key == "run.maa_external_unverified"
+    assert result.diagnostic_code == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value
+    assert "cannot verify" in result.summary
+    assert "manually" in result.summary
+
+
+def test_external_maa_dispatch_does_not_treat_exit_zero_as_verified(tmp_path):
+    stdout = tmp_path / "stdout.txt"
+    stderr = tmp_path / "stderr.txt"
+    stdout.write_text(successful_summary(), encoding="utf-8")
+    stderr.write_text("", encoding="utf-8")
+
+    result = assess_run_result(
+        maa_job(
+            {
+                "config_version": 1,
+                "task_mode": "external",
+                "task_name": "daily",
+            }
+        ),
+        stdout,
+        stderr,
+    )
+
+    assert result.needs_attention
+
+
+def test_managed_maa_dispatch_keeps_strict_completion_audit(tmp_path):
+    stdout = tmp_path / "stdout.txt"
+    stderr = tmp_path / "stderr.txt"
+    stdout.write_text(
+        successful_summary().replace(
+            "[领取奖励] 10:10:00 - 10:11:00 Completed\n",
+            "",
+        ),
+        encoding="utf-8",
+    )
+    stderr.write_text("", encoding="utf-8")
+
+    result = assess_run_result(maa_job(managed_config()), stdout, stderr)
+
+    assert result.needs_attention
+    assert "领取奖励" in result.summary
+
+
+def test_managed_maa_dispatch_preserves_verified_success(tmp_path):
+    stdout = tmp_path / "stdout.txt"
+    stderr = tmp_path / "stderr.txt"
+    stdout.write_text(successful_summary(), encoding="utf-8")
+    stderr.write_text("", encoding="utf-8")
+
+    result = assess_run_result(maa_job(managed_config()), stdout, stderr)
+
     assert not result.needs_attention
 
 

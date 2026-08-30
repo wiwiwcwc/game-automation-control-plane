@@ -48,6 +48,16 @@ def test_translation_catalogs_have_exact_key_parity():
     assert set(_ZH_CN) == set(_EN_US)
 
 
+def test_external_maa_review_prompt_is_localized():
+    zh = LanguageManager("zh_CN", persist=False)
+    en = LanguageManager("en_US", persist=False)
+
+    assert "外部 MAA 任务已正常退出" in zh.text("run.maa_external_unverified")
+    assert "cannot confirm that every daily step completed" in en.text(
+        "run.maa_external_unverified"
+    )
+
+
 def test_all_states_and_daily_statuses_have_chinese_display_text():
     manager = LanguageManager("zh_CN", persist=False)
     assert all(state_text(manager, state.value) != f"state.{state.value}" for state in RunState)

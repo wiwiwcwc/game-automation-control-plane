@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..domain.models import Job
+from ..domain.models import ErrorKind, Job
 from ..integrations.maa_cli import MAA_CLI_RUNNER_TYPE
 from ..integrations.maa_managed_task import (
     expected_managed_task_names,
@@ -27,16 +27,47 @@ _FIGHT_COUNT_PATTERN = re.compile(
 class RunResultAssessment:
     needs_attention: bool = False
     summary: str = ""
+    localization_key: str | None = None
+    diagnostic_code: str | None = None
+
+
+_EXTERNAL_MAA_UNVERIFIED_SUMMARY = (
+    "The external MAA task exited normally, but Hsiesta cannot verify that every "
+    "daily step completed. Review the captured log and mark the daily complete "
+    "manually only after confirming the task flow. Automatic emulator cleanup was "
+    "skipped so you can inspect the run."
+)
 
 
 def assess_run_result(job: Job, stdout_path: str | Path, stderr_path: str | Path) -> RunResultAssessment:
     if job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
         return assess_onedragon_output(stdout_path, stderr_path)
-    if job.runner_type != MAA_CLI_RUNNER_TYPE or not is_managed_maa_config(job.runner_config):
+    if job.runner_type != MAA_CLI_RUNNER_TYPE:
         return RunResultAssessment()
     stdout = _read_text(stdout_path)
     stderr = _read_text(stderr_path)
+    if not is_managed_maa_config(job.runner_config):
+        return assess_external_maa_output(stdout, stderr)
     return assess_managed_maa_output(job.runner_config, stdout, stderr)
+
+
+def assess_external_maa_output(
+    _stdout: str,
+    _stderr: str = "",
+) -> RunResultAssessment:
+    """Keep arbitrary external MAA task files reviewable after a clean exit.
+
+    Hsiesta cannot infer the intended task sequence or completion evidence from
+    a user-maintained maa-cli task file, so an exit code of zero is never
+    treated as a verified daily success in external mode.
+    """
+
+    return RunResultAssessment(
+        needs_attention=True,
+        summary=_EXTERNAL_MAA_UNVERIFIED_SUMMARY,
+        localization_key="run.maa_external_unverified",
+        diagnostic_code=ErrorKind.MAA_EXTERNAL_UNVERIFIED.value,
+    )
 
 
 def assess_onedragon_output(
@@ -106,6 +137,7 @@ def _read_text(path: str | Path) -> str:
 
 __all__ = [
     "RunResultAssessment",
+    "assess_external_maa_output",
     "assess_managed_maa_output",
     "assess_onedragon_output",
     "assess_run_result",

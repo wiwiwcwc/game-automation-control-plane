@@ -107,7 +107,13 @@ def _trusted_tree_snapshot(
     for raw_pid, raw_parent_pid in entries:
         pid = int(raw_pid)
         parent_pid = int(raw_parent_pid)
-        if pid <= 0 or parent_pid < 0 or pid in parent_map:
+        # Toolhelp snapshots include PID 0 (the System Idle Process). It is
+        # not a terminable user process and must not make an otherwise valid
+        # owned tree fail closed. Keep parent PID 0 for legitimate roots, but
+        # ignore the synthetic PID-0 row itself.
+        if pid == 0:
+            continue
+        if pid < 0 or parent_pid < 0 or pid in parent_map:
             return None
         parent_map[pid] = parent_pid
         children.setdefault(parent_pid, []).append(pid)
@@ -508,7 +514,12 @@ if os.name == "nt":
             for raw_pid, raw_parent_pid in entries:
                 pid = int(raw_pid)
                 parent_pid = int(raw_parent_pid)
-                if pid <= 0 or parent_pid < 0 or pid in parent_map:
+                # PID 0 is the synthetic System Idle Process entry that
+                # Toolhelp snapshots include on Windows; it is not part of
+                # any owned launcher tree.
+                if pid == 0:
+                    continue
+                if pid < 0 or parent_pid < 0 or pid in parent_map:
                     return None
                 parent_map[pid] = parent_pid
 

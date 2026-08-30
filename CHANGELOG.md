@@ -1,7 +1,21 @@
 # Changelog
 
-All notable changes are recorded here. Version 0.1.19 is the current source
+All notable changes are recorded here. Version 0.1.20 is the current source
 version of the project.
+
+## [0.1.20] — 2026-08-30
+
+### Fixed
+
+- Fixed OneDragon stop validation rejecting valid Windows process snapshots
+  because the Toolhelp snapshot includes the synthetic PID 0 System Idle
+  Process entry.
+- MAA / `maa-cli` tasks that use an external, user-maintained task file now
+  enter `needs_attention` after exit code 0 instead of appearing as a verified
+  completion. Hsiesta keeps the captured logs, skips owned MuMu cleanup, and
+  asks for manual confirmation because it cannot infer the external task's
+  intended steps.
+- Added localized Chinese and English review prompts for external MAA runs.
 
 ## [0.1.19] — 2026-08-29
 

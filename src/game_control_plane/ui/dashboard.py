@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime
 
 from PySide6.QtCore import Signal
@@ -15,7 +16,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..domain.models import DailyStatus, Job, Run
+from ..domain.models import DailyStatus, ErrorKind, Job, Run, RunState
+from ..integrations.maa_cli import MAA_CLI_RUNNER_TYPE
+from ..integrations.maa_managed_task import is_managed_maa_config
 from ..integrations.registry import integration_label
 from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
 from .i18n import LanguageManager, game_text, state_text
@@ -210,7 +213,7 @@ class JobCard(QFrame):
         elif latest_run is None:
             execution, pill_state = self.i18n.text("card.never_run"), "idle"
         else:
-            execution = state_text(self.i18n, latest_run.state.value)
+            execution = _execution_state_text(self.i18n, job, latest_run)
             if latest_run.state.value == "exited":
                 pill_state = "success"
             elif latest_run.state.value == "needs_attention":
@@ -268,6 +271,37 @@ class JobCard(QFrame):
         self.move_up_button.setEnabled(not order_locked and can_move_up)
         self.move_down_button.setEnabled(not order_locked and can_move_down)
         self.remove_button.setEnabled(not controls_locked)
+
+
+def _execution_state_text(i18n: LanguageManager, job: Job, run: Run) -> str:
+    if _is_external_maa_unverified_run(job, run):
+        return i18n.text("state.maa_external_unverified")
+    return state_text(i18n, run.state.value)
+
+
+def _is_external_maa_unverified_run(job: Job, run: Run) -> bool:
+    """Use persisted run evidence so later job edits cannot relabel history."""
+
+    if run.state != RunState.NEEDS_ATTENTION:
+        return False
+    if run.error_kind == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value:
+        return True
+    if run.error_kind != ErrorKind.AUTOMATION_INCOMPLETE.value:
+        return False
+    if job.runner_type != MAA_CLI_RUNNER_TYPE:
+        return False
+    try:
+        snapshot = json.loads(run.launch_snapshot_json)
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(snapshot, dict):
+        return False
+    if snapshot.get("runner_type") != MAA_CLI_RUNNER_TYPE:
+        return False
+    config = snapshot.get("runner_config")
+    if not isinstance(config, dict):
+        return False
+    return not is_managed_maa_config(config)
 
 
 class Dashboard(QWidget):

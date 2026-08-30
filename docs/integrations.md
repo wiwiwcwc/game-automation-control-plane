@@ -141,13 +141,17 @@ configured `adb.exe` before `adb devices -l` is evaluated. Failures open a
 four-step guide and do not create a Run record. Emulator polling runs on a
 worker thread, so its progress window remains responsive during startup.
 
-After a managed task exits with code zero, the result auditor checks the
-maa-cli summary for every enabled task. If Fight is enabled, it additionally
-requires a positive `Fight ... times` result. A missing, unstarted, zero-battle,
-or task-chain-error result becomes `needs_attention` instead of `exited`; the
-diagnostic output is retained and ownership-based emulator cleanup is skipped.
-The same inference is not applied to arbitrary external tasks because their
-custom structure is unknown.
+After any MAA task exits with code zero, Hsiesta does not treat the run as a
+verified daily success. For a managed task, the result auditor checks the
+maa-cli summary for every enabled top-level task. If Fight is enabled, it
+additionally requires a positive `Fight ... times` result. A missing,
+unstarted, zero-battle, or task-chain-error result becomes `needs_attention`
+instead of `exited`; the diagnostic output is retained and ownership-based
+emulator cleanup is skipped. For an external task, Hsiesta cannot know which
+steps its user-maintained TOML intends to run, so even a clean exit becomes
+`needs_attention` with a manual log-review prompt; cleanup is skipped for the
+same reason. Neither path changes `DailyCompletion`, which remains a manual
+confirmation.
 
 ### Upstream documentation
 
