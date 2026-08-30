@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 
 from ..domain.models import Job
-from .base import LaunchSpec, ValidationResult
+from .base import LaunchSpec, ValidationIssue, ValidationResult
 
 
 ZZZ_ONEDRAGON_RUNNER_TYPE = "zzz_onedragon"
@@ -177,38 +177,78 @@ class ZzzOneDragonIntegration:
 
     def validate_config(self, config: dict[str, object]) -> ValidationResult:
         errors: list[str] = []
+        issues: list[ValidationIssue] = []
         executable_value = config.get("executable_path")
         executable: Path | None = None
         if not isinstance(executable_value, str) or not executable_value.strip():
             errors.append("OneDragon launcher path is required.")
+            issues.append(ValidationIssue("onedragon.executable.invalid", detail=errors[-1]))
         else:
             executable = Path(executable_value.strip()).expanduser()
             if not executable.is_absolute():
                 errors.append("OneDragon launcher path must be absolute.")
+                issues.append(ValidationIssue("onedragon.executable.invalid", detail=errors[-1]))
             elif not executable.exists():
                 errors.append(f"OneDragon launcher was not found: {executable}")
+                issues.append(
+                    ValidationIssue(
+                        "onedragon.executable.invalid",
+                        {"path": str(executable)},
+                        errors[-1],
+                    )
+                )
             elif not executable.is_file():
                 errors.append(f"OneDragon launcher path is not a file: {executable}")
+                issues.append(
+                    ValidationIssue(
+                        "onedragon.executable.invalid",
+                        {"path": str(executable)},
+                        errors[-1],
+                    )
+                )
             elif launcher_kind(executable) is None:
                 errors.append(
                     "Choose OneDragon-RuntimeLauncher.exe or the official OneDragon-Launcher.exe."
                 )
+                issues.append(
+                    ValidationIssue(
+                        "onedragon.executable.invalid",
+                        {"path": str(executable)},
+                        errors[-1],
+                    )
+                )
             elif not os.access(executable, os.X_OK) and os.name != "nt":
                 errors.append(f"OneDragon launcher is not runnable: {executable}")
+                issues.append(
+                    ValidationIssue(
+                        "onedragon.executable.invalid",
+                        {"path": str(executable)},
+                        errors[-1],
+                    )
+                )
 
         try:
             parse_instance_indices(config.get("instance_indices", ""))
         except ValueError as exc:
             errors.append(str(exc))
+            issues.append(ValidationIssue("onedragon.accounts.invalid", detail=errors[-1]))
 
         close_game = config.get("close_game_after_run", False)
         if not isinstance(close_game, bool):
             errors.append("Close Zenless Zone Zero after run must be enabled or disabled.")
+            issues.append(ValidationIssue("onedragon.launch.invalid", detail=errors[-1]))
 
         version = config.get("config_version", self.config_version)
         if version != self.config_version:
             errors.append(f"Unsupported OneDragon configuration version: {version}")
-        return ValidationResult(valid=not errors, errors=tuple(errors))
+            issues.append(
+                ValidationIssue(
+                    "onedragon.launch.invalid",
+                    {"version": version},
+                    errors[-1],
+                )
+            )
+        return ValidationResult(valid=not errors, errors=tuple(errors), issues=tuple(issues))
 
     def build_launch_spec(self, job: Job) -> LaunchSpec:
         config = job.runner_config

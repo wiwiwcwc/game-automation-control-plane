@@ -123,6 +123,8 @@ def test_zero_battle_is_partial_even_when_maa_labels_fight_completed():
     assert result.needs_attention
     assert "zero battles" in result.summary
     assert "left open" in result.summary
+    assert result.diagnostic_code == ErrorKind.MAA_MANAGED_INCOMPLETE.value
+    assert result.diagnostic_params["zero_battles"] is True
 
 
 def test_missing_or_unstarted_task_is_partial():
@@ -155,3 +157,5 @@ def test_onedragon_exit_is_always_manual_review(tmp_path):
     assert result.needs_attention
     assert "cannot verify" in result.summary
     assert "mark the daily complete manually" in result.summary
+    assert result.diagnostic_code == ErrorKind.ONEDRAGON_UNVERIFIED.value
+    assert result.diagnostic_params["captured"] == "stdout"

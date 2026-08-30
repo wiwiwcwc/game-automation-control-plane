@@ -3,8 +3,9 @@ from __future__ import annotations
 from PySide6.QtCore import QSettings
 from PySide6.QtWidgets import QApplication
 
-from game_control_plane.domain.models import DailyStatus, RunState
+from game_control_plane.domain.models import DailyStatus, ErrorKind, Run, RunState
 from game_control_plane.ui.dashboard import Dashboard
+from game_control_plane.ui.diagnostics import format_run_diagnostic
 from game_control_plane.ui.i18n import (
     _EN_US,
     _ZH_CN,
@@ -56,6 +57,37 @@ def test_external_maa_review_prompt_is_localized():
     assert "cannot confirm that every daily step completed" in en.text(
         "run.maa_external_unverified"
     )
+
+
+def test_onedragon_unverified_summary_is_exactly_bilingual():
+    zh = LanguageManager("zh_CN", persist=False)
+    en = LanguageManager("en_US", persist=False)
+    assert zh.text("diagnostic.onedragon_unverified") == "进程已正常结束 · 结果未验证"
+    assert en.text("diagnostic.onedragon_unverified") == "Process ended normally · result unverified"
+
+
+def test_run_diagnostic_localizes_without_rewriting_technical_detail():
+    run = Run(
+        id="run-1",
+        job_id=1,
+        trigger_type="manual",
+        state=RunState.NEEDS_ATTENTION,
+        started_at_utc=None,
+        finished_at_utc=None,
+        exit_code=0,
+        exit_status="normal",
+        error_kind=ErrorKind.ONEDRAGON_UNVERIFIED.value,
+        error_summary="upstream raw summary",
+        stdout_path=None,
+        stderr_path=None,
+        launch_snapshot_json='{"runner_type":"zzz_onedragon"}',
+        created_at_utc="2026-08-30T00:00:00+00:00",
+    )
+    zh = format_run_diagnostic(LanguageManager("zh_CN", persist=False), run)
+    en = format_run_diagnostic(LanguageManager("en_US", persist=False), run)
+    assert zh.summary == "进程已正常结束 · 结果未验证"
+    assert en.summary == "Process ended normally · result unverified"
+    assert zh.technical_detail == en.technical_detail == "upstream raw summary"
 
 
 def test_all_states_and_daily_statuses_have_chinese_display_text():

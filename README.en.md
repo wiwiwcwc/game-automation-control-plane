@@ -17,14 +17,14 @@ Support will expand gradually as each tool's launch, monitoring, and completion 
 
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.20`.
+The current source version is `0.1.21`.
 
 ## Windows download
 
 ### One-click installation (recommended)
 
 Open [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases), download
-`Hsiesta-0.1.20-Setup.exe`, double-click it, and follow the wizard. The installer
+`Hsiesta-0.1.21-Setup.exe`, double-click it, and follow the wizard. The installer
 defaults to the current user's `%LOCALAPPDATA%\Programs\Hsiesta`; a Start Menu
 shortcut is created by default and the desktop shortcut is optional. The installer
 itself does not require administrator privileges, while the existing
@@ -76,7 +76,7 @@ Application data is stored under `%LOCALAPPDATA%\GameAutomationControlPlane\` by
 | MAA / `maa-cli` | Arknights | Version, task, dry-run, and ADB preflight; managed-task auditing; manual review for external tasks after exit; ownership-aware MuMu monitoring |
 | MAA_Punish / FOS | Punishing: Gray Raven | Saved-config discovery, task-flow monitoring, and exact-path FOS/MuMu handling |
 | OK-WW | Wuthering Waves | Positive task index, `-t <index>`, optional `-e`, and constrained worker handoff monitoring |
-| Zenless Zone Zero OneDragon | Zenless Zone Zero | “Open OneDragon GUI” starts the official GUI; “Run automatically” uses headless `-o`, with optional instance and `-c` arguments, plus exact stop for the owned run |
+| Zenless Zone Zero OneDragon | Zenless Zone Zero | “Open OneDragon GUI” starts the official GUI; “Run automatically” uses headless `-o`, normal exit is shown as unverified, with optional instance and `-c` arguments, plus exact stop for the owned run |
 | Custom CLI | Other external scripts | Explicit interpreter/executable, arguments, working directory, output, and run history |
 
 OneDragon currently supports Zenless Zone Zero; install and configure OneDragon before using it.
@@ -91,6 +91,8 @@ No. Hsiesta schedules and monitors external tools that you have installed. It do
 ### Why can a run need review after exiting with code 0?
 
 Exit code 0 only means that the external process ended normally. Managed MAA tasks require complete task evidence and at least one real battle; an external MAA task has an unknown structure, so even exit code 0 becomes **needs attention** and skips automatic emulator cleanup. OneDragon has no completion signal that Hsiesta can trust, so a clean exit still needs log review and manual confirmation.
+
+The dashboard and run history format persisted diagnostic codes in the selected language; a normal OneDragon exit is shown as “Process ended normally · result unverified”. The original `error_summary`, system/upstream errors, and stdout/stderr remain available as technical details, and changing language never rewrites captured logs.
 
 ### What has been verified for each integration?
 

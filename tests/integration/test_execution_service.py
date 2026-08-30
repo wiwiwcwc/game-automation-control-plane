@@ -26,6 +26,7 @@ from game_control_plane.integrations.custom_cli import CustomCliIntegration
 from game_control_plane.integrations.registry import IntegrationRegistry
 from game_control_plane.persistence.database import Database
 from game_control_plane.persistence.store import Store
+from game_control_plane.ui.diagnostics import format_run_diagnostic
 from game_control_plane.ui.i18n import LanguageManager
 
 
@@ -428,11 +429,47 @@ def test_onedragon_clean_exit_needs_manual_completion_review(tmp_path: Path):
     assert finished is not None
     assert finished.state == RunState.NEEDS_ATTENTION
     assert finished.exit_code == 0
-    assert finished.error_kind == ErrorKind.AUTOMATION_INCOMPLETE.value
+    assert finished.error_kind == ErrorKind.ONEDRAGON_UNVERIFIED.value
     assert "cannot verify" in (finished.error_summary or "")
     assert "manually" in (finished.error_summary or "")
     assert store.daily_status(job) == DailyStatus.PENDING
-    assert "[Hsiesta]" in Path(finished.stderr_path).read_text(encoding="utf-8")
+    assert "[Hsiesta]" not in Path(finished.stderr_path).read_text(encoding="utf-8")
+    snapshot = json.loads(finished.launch_snapshot_json)
+    assert snapshot["diagnostic_code"] == ErrorKind.ONEDRAGON_UNVERIFIED.value
+    assert snapshot["diagnostic_params"]["captured"] == "stdout"
+
+
+def test_onedragon_auditor_exception_keeps_unverified_diagnostic_and_raw_detail(
+    tmp_path: Path,
+):
+    fixture = Path(__file__).parents[1] / "fixtures" / "fixture_cli.py"
+    store = Store(Database(tmp_path / "control.sqlite3"))
+
+    def raising_auditor(_job, _stdout, _stderr):
+        raise RuntimeError("fixture auditor failure")
+
+    service = ExecutionService(
+        store,
+        tmp_path / "runs",
+        registry=IntegrationRegistry([FixtureOneDragonIntegration(fixture)]),
+        result_auditor=raising_auditor,
+    )
+    job = create_onedragon_job(store)
+    assert job is not None
+    app_instance()
+
+    finished = _wait_for_run(service, service.start(job).id)
+
+    assert finished is not None
+    assert finished.state == RunState.NEEDS_ATTENTION
+    assert finished.error_kind == ErrorKind.ONEDRAGON_UNVERIFIED.value
+    assert "fixture auditor failure" in (finished.error_summary or "")
+    snapshot = json.loads(finished.launch_snapshot_json)
+    assert snapshot["diagnostic_code"] == ErrorKind.ONEDRAGON_UNVERIFIED.value
+    assert "fixture auditor failure" in snapshot["diagnostic_params"]["audit_error"]
+    display = format_run_diagnostic(LanguageManager("zh_CN", persist=False), finished)
+    assert display.summary == "进程已正常结束 · 结果未验证"
+    assert "fixture auditor failure" in display.technical_detail
 
 
 class FakeEmulatorWatchdog(QObject):
@@ -567,7 +604,10 @@ def test_successful_run_waits_for_post_action_and_surfaces_cleanup_warning(tmp_p
     assert finished.exit_code == 0
     assert finished.error_kind == "post_run_action_failed"
     assert "automation succeeded" in (finished.error_summary or "").casefold()
-    assert "fixture cleanup failure" in Path(finished.stdout_path).read_text()
+    cleanup_log = Path(finished.stdout_path).read_text()
+    assert "fixture stdout" in cleanup_log
+    assert "fixture cleanup failure" not in cleanup_log
+    assert "[Hsiesta]" not in cleanup_log
 
 
 def test_result_needing_attention_skips_post_run_cleanup(tmp_path: Path):
@@ -670,10 +710,11 @@ def test_external_maa_clean_exit_needs_review_and_skips_cleanup(tmp_path: Path):
     assert finished.state == RunState.NEEDS_ATTENTION
     assert finished.exit_code == 0
     assert finished.error_kind == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value
-    assert "外部 MAA 任务已正常退出" in (finished.error_summary or "")
-    assert "自动关闭模拟器已跳过" in (finished.error_summary or "")
+    assert "external MAA task exited normally" in (finished.error_summary or "")
+    assert "Automatic emulator cleanup was skipped" in (finished.error_summary or "")
     assert cleanup_calls == ["created"]
     assert "external MAA cleanup must not run" not in Path(finished.stdout_path).read_text()
+    assert "[Hsiesta]" not in Path(finished.stderr_path).read_text()
     assert store.daily_status(job) == DailyStatus.PENDING
 
 

@@ -1,7 +1,25 @@
 # Changelog
 
-All notable changes are recorded here. Version 0.1.20 is the current source
+All notable changes are recorded here. Version 0.1.21 is the current source
 version of the project.
+
+## [0.1.21] — 2026-08-30
+
+### Fixed
+
+- OneDragon headless `-o` runs that exit normally remain `needs_attention` and
+  are persisted with a dedicated `onedragon_unverified` diagnostic. The UI now
+  shows “进程已正常结束 · 结果未验证” / “Process ended normally · result
+  unverified” and never treats that exit as a partial completion or a daily
+  completion.
+- Added a centralized bilingual run-diagnostic formatter for launch failures,
+  crashes, nonzero exits, emulator loss, cleanup failures, managed MAA evidence
+  gaps, and unverified MAA/OneDragon results. Historical runs use their
+  persisted evidence even after a job is edited.
+- Kept captured stdout/stderr and upstream/system error text unchanged; the
+  localized summary is presented separately from technical details.
+- Added stable validation/preflight issue metadata for MAA, FOS, and OneDragon,
+  plus a non-blocking localized queue warning for synchronous start failures.
 
 ## [0.1.20] — 2026-08-30
 

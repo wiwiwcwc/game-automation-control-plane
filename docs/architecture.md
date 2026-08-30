@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.20 implementation, not a promise about future
+This document describes the 0.1.21 implementation, not a promise about future
 integrations. The main path is:
 
 ```text
@@ -68,8 +68,11 @@ task needs a completed summary and an enabled Fight task needs a positive
 battle count. External MAA tasks have an unknown, user-maintained structure, so
 a clean exit is recorded as `needs_attention` for manual log review instead of
 verified success. Missing evidence produces `needs_attention` with error kind
-`automation_incomplete`; invalid configuration and failed-to-start paths also
-produce a durable failed run. None of those outcomes writes a
+`automation_incomplete` or a more specific stable diagnostic code such as
+`maa_managed_incomplete` / `onedragon_unverified`; invalid configuration and
+failed-to-start paths also produce a durable failed run. The UI formats these
+codes in the selected language and keeps `error_summary` plus stdout/stderr as
+technical details. None of those outcomes writes a
 `DailyCompletion` row.
 
 Before a MAA, MAA_Punish, or OneDragon job reaches `ExecutionService`, the dashboard runs a
@@ -80,6 +83,10 @@ it first validates the editor settings and atomically writes a job-scoped
 A failed preflight
 opens a setup guide and does not create a Run record. The preflight is kept out
 of `LaunchSpec`, so the real command remains exactly `run <task> --batch`.
+Preflight steps and MAA/FOS/OneDragon editor validation also carry stable
+diagnostic codes and parameters. Their actionable summaries are localized in
+the UI; executable paths, system errors, and upstream text remain in the
+technical-details section.
 When optional MuMu startup is enabled and that exact ADB device is absent, the
 preflight asks `mumu-cli.exe` to launch the saved instance number and polls the
 MAA profile address until it is ready or the configured timeout expires. These
@@ -106,7 +113,9 @@ compatibility layout, without mixing or reading YAML contents. Its
 launch specification is the upstream explicit `-o`, optional `-i <indices>`,
 and optional `-c`, with the launcher parent as working directory. There is no
 trusted external completion signal, so a clean OneDragon exit is finalized as
-`needs_attention` and never changes `DailyCompletion`. The adapter does not
+`needs_attention`, persists `onedragon_unverified`, and displays “进程已正常
+结束 · 结果未验证” / “Process ended normally · result unverified”; it never
+changes `DailyCompletion`. The adapter does not
 read or modify OneDragon YAML/account settings, follow an unverified worker,
 take over the game window, or stop external processes by name.
 
@@ -176,9 +185,12 @@ so Chinese labels and high-DPI scaling do not force controls off screen.
 `LanguageManager` keeps stable translation keys in code and stores only the
 selected language code in `QSettings`. Simplified Chinese is the fallback and
 first-launch default; English can be selected from the Settings menu and the
-dashboard retranslates immediately. Database enum values, runner types, job
-configuration, stdout/stderr, and third-party technical output are never
-translated or rewritten. The implementation is in
+dashboard retranslates immediately. Persisted diagnostic codes and parameters
+drive a centralized localized run formatter used by the dashboard and run
+history; changing language re-renders those summaries without changing stored
+details. Database enum values, runner types, job configuration, stdout/stderr,
+and third-party technical output are never translated or rewritten. The
+implementation is in
 [`ui/i18n.py`](../src/game_control_plane/ui/i18n.py) and
 [`ui/theme.py`](../src/game_control_plane/ui/theme.py).
 
@@ -194,6 +206,10 @@ snapshot of jobs that are enabled and currently `pending`, in persisted
 4. continues after invalid configuration, failed-to-start, crashes, and
    nonzero exits; and
 5. returns to idle after the snapshot is exhausted.
+
+Synchronous start failures are surfaced through a non-blocking localized status
+message while the queue skips that item and continues. Completion signals are
+still matched to the exact run ID.
 
 The queue remains sequential internally, but it can coexist with unrelated
 manual runs. Its snapshot excludes jobs that are already running, and completion

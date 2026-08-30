@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime
 
 from PySide6.QtCore import Signal
@@ -17,11 +16,10 @@ from PySide6.QtWidgets import (
 )
 
 from ..domain.models import DailyStatus, ErrorKind, Job, Run, RunState
-from ..integrations.maa_cli import MAA_CLI_RUNNER_TYPE
-from ..integrations.maa_managed_task import is_managed_maa_config
 from ..integrations.registry import integration_label
 from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
-from .i18n import LanguageManager, game_text, state_text
+from .diagnostics import format_run_diagnostic, persisted_diagnostic_code, run_state_text
+from .i18n import LanguageManager, game_text
 
 
 class MetricBlock(QWidget):
@@ -240,8 +238,10 @@ class JobCard(QFrame):
             if latest_run.finished_at_utc:
                 last_run += f" · {self.i18n.text('card.duration', duration=format_duration(latest_run.duration_seconds))}"
             self.last_run_metric.value.setText(last_run)
-            self.detail_label.setText(latest_run.error_summary or "")
-            self.detail_label.setVisible(bool(latest_run.error_summary))
+            display = format_run_diagnostic(self.i18n, latest_run, job)
+            self.detail_label.setText(display.summary)
+            self.detail_label.setToolTip(display.technical_detail)
+            self.detail_label.setVisible(bool(display.summary))
 
         controls_locked = active or queue_state in {"queued", "running"}
         is_onedragon = job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE
@@ -274,34 +274,16 @@ class JobCard(QFrame):
 
 
 def _execution_state_text(i18n: LanguageManager, job: Job, run: Run) -> str:
-    if _is_external_maa_unverified_run(job, run):
-        return i18n.text("state.maa_external_unverified")
-    return state_text(i18n, run.state.value)
+    return run_state_text(i18n, run, job)
 
 
 def _is_external_maa_unverified_run(job: Job, run: Run) -> bool:
     """Use persisted run evidence so later job edits cannot relabel history."""
 
-    if run.state != RunState.NEEDS_ATTENTION:
-        return False
-    if run.error_kind == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value:
-        return True
-    if run.error_kind != ErrorKind.AUTOMATION_INCOMPLETE.value:
-        return False
-    if job.runner_type != MAA_CLI_RUNNER_TYPE:
-        return False
-    try:
-        snapshot = json.loads(run.launch_snapshot_json)
-    except (TypeError, ValueError):
-        return False
-    if not isinstance(snapshot, dict):
-        return False
-    if snapshot.get("runner_type") != MAA_CLI_RUNNER_TYPE:
-        return False
-    config = snapshot.get("runner_config")
-    if not isinstance(config, dict):
-        return False
-    return not is_managed_maa_config(config)
+    return (
+        run.state == RunState.NEEDS_ATTENTION
+        and persisted_diagnostic_code(run, job) == ErrorKind.MAA_EXTERNAL_UNVERIFIED.value
+    )
 
 
 class Dashboard(QWidget):

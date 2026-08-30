@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..domain.models import ErrorKind, Job
@@ -29,6 +29,7 @@ class RunResultAssessment:
     summary: str = ""
     localization_key: str | None = None
     diagnostic_code: str | None = None
+    diagnostic_params: dict[str, object] = field(default_factory=dict)
 
 
 _EXTERNAL_MAA_UNVERIFIED_SUMMARY = (
@@ -87,6 +88,9 @@ def assess_onedragon_output(
             "Review the captured OneDragon log and mark the daily complete manually if appropriate. "
             "Hsiesta does not follow or stop an unverified OneDragon worker; inspect manually if any process remains."
         ),
+        localization_key="diagnostic.onedragon_unverified",
+        diagnostic_code=ErrorKind.ONEDRAGON_UNVERIFIED.value,
+        diagnostic_params={"captured": captured},
     )
 
 
@@ -112,6 +116,12 @@ def assess_managed_maa_output(
     fight_enabled = isinstance(options, dict) and options.get("fight") is True
     fight_count = sum(int(match.group("count")) for match in _FIGHT_COUNT_PATTERN.finditer(stdout))
     reasons: list[str] = []
+    diagnostic_params: dict[str, object] = {
+        "missing": tuple(missing),
+        "incomplete": tuple(incomplete),
+        "zero_battles": bool(fight_enabled and fight_count == 0),
+        "task_chain_error": "TaskChainError" in stdout or "TaskChainError" in stderr,
+    }
     if missing:
         reasons.append("missing summary for " + ", ".join(missing))
     if incomplete:
@@ -125,6 +135,8 @@ def assess_managed_maa_output(
     return RunResultAssessment(
         needs_attention=True,
         summary="MAA needs attention: " + "; ".join(reasons) + ". The emulator was left open.",
+        diagnostic_code=ErrorKind.MAA_MANAGED_INCOMPLETE.value,
+        diagnostic_params=diagnostic_params,
     )
 
 

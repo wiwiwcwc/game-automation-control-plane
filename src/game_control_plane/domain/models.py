@@ -35,6 +35,8 @@ class ErrorKind(StrEnum):
     POST_RUN_ACTION_FAILED = "post_run_action_failed"
     AUTOMATION_INCOMPLETE = "automation_incomplete"
     MAA_EXTERNAL_UNVERIFIED = "maa_external_unverified"
+    MAA_MANAGED_INCOMPLETE = "maa_managed_incomplete"
+    ONEDRAGON_UNVERIFIED = "onedragon_unverified"
     INTERRUPTED = "interrupted"
     STOP_FAILED = "stop_failed"
     INTERNAL_ERROR = "internal_error"

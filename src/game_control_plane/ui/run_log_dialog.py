@@ -18,7 +18,8 @@ from PySide6.QtWidgets import (
 
 from ..domain.models import Job, Run
 from .dashboard import format_duration, format_timestamp
-from .i18n import LanguageManager, game_text, state_text
+from .diagnostics import format_run_diagnostic, run_state_text
+from .i18n import LanguageManager, game_text
 
 
 class RunHistoryDialog(QDialog):
@@ -65,11 +66,14 @@ class RunHistoryDialog(QDialog):
 
         self.stdout = QTextEdit()
         self.stderr = QTextEdit()
+        self.technical = QTextEdit()
         self.stdout.setReadOnly(True)
         self.stderr.setReadOnly(True)
-        tabs = QTabWidget()
-        tabs.addTab(self.stdout, self.i18n.text("history.stdout"))
-        tabs.addTab(self.stderr, self.i18n.text("history.stderr"))
+        self.technical.setReadOnly(True)
+        self.tabs = QTabWidget()
+        self.tabs.addTab(self.stdout, self.i18n.text("history.stdout"))
+        self.tabs.addTab(self.stderr, self.i18n.text("history.stderr"))
+        self.tabs.addTab(self.technical, self.i18n.text("history.technical"))
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.button(QDialogButtonBox.StandardButton.Close).setText(
@@ -80,8 +84,30 @@ class RunHistoryDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.addWidget(self.summary)
         layout.addWidget(self.history_table)
-        layout.addWidget(tabs)
+        layout.addWidget(self.tabs)
+        self.i18n.language_changed.connect(self._retranslate)
         layout.addWidget(buttons)
+        self.reload()
+
+    def _retranslate(self, _language: str) -> None:
+        title = (
+            self.job
+            if isinstance(self.job, str)
+            else f"{game_text(self.i18n, self.job.game_name, self.job.runner_type)} · {self.job.name}"
+        )
+        self.setWindowTitle(self.i18n.text("history.title", title=title))
+        self.history_table.setHorizontalHeaderLabels(
+            [
+                self.i18n.text("history.timestamp"),
+                self.i18n.text("history.state"),
+                self.i18n.text("history.duration"),
+                self.i18n.text("history.exit_code"),
+                self.i18n.text("history.error"),
+            ]
+        )
+        self.tabs.setTabText(0, self.i18n.text("history.stdout"))
+        self.tabs.setTabText(1, self.i18n.text("history.stderr"))
+        self.tabs.setTabText(2, self.i18n.text("history.technical"))
         self.reload()
 
     def reload(self) -> None:
@@ -91,10 +117,14 @@ class RunHistoryDialog(QDialog):
             self.history_table.insertRow(row)
             values = (
                 format_timestamp(run.finished_at_utc or run.started_at_utc or run.created_at_utc),
-                state_text(self.i18n, run.state.value),
+                run_state_text(self.i18n, run, self.job if isinstance(self.job, Job) else None),
                 format_duration(run.duration_seconds),
                 "—" if run.exit_code is None else str(run.exit_code),
-                concise_error(run.error_summary),
+                concise_error(
+                    format_run_diagnostic(
+                        self.i18n, run, self.job if isinstance(self.job, Job) else None
+                    ).summary
+                ),
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
@@ -115,21 +145,27 @@ class RunHistoryDialog(QDialog):
             self.summary.setText(self.i18n.text("history.no_runs"))
             self.stdout.clear()
             self.stderr.clear()
+            self.technical.clear()
             return
         self.selected_run = self.runs[row]
         run = self.selected_run
-        detail = concise_error(run.error_summary)
+        display = format_run_diagnostic(
+            self.i18n, run, self.job if isinstance(self.job, Job) else None
+        )
         exit_text = "—" if run.exit_code is None else str(run.exit_code)
         summary = self.i18n.text(
             "history.summary",
             run_id=run.id[:8],
-            state=state_text(self.i18n, run.state.value),
+            state=run_state_text(
+                self.i18n, run, self.job if isinstance(self.job, Job) else None
+            ),
             duration=format_duration(run.duration_seconds),
             exit_code=exit_text,
         )
-        if detail:
-            summary += f"\n{detail}"
+        if display.summary:
+            summary += f"\n{display.summary}"
         self.summary.setText(summary)
+        self.technical.setPlainText(display.technical_detail)
         self.stdout.setPlainText(_read_log(run.stdout_path, i18n=self.i18n))
         self.stderr.setPlainText(_read_log(run.stderr_path, i18n=self.i18n))
 

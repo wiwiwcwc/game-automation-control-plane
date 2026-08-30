@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import time
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from typing import Callable, Protocol, Sequence
@@ -30,6 +30,17 @@ class CheckStep:
     summary: str
     next_action: str = ""
     details: str = ""
+    diagnostic_code: str | None = None
+    diagnostic_params: dict[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        if self.diagnostic_code is None:
+            state_value = getattr(self.state, "value", str(self.state))
+            object.__setattr__(
+                self,
+                "diagnostic_code",
+                f"preflight.{self.key}.{state_value}",
+            )
 
 
 @dataclass(frozen=True)

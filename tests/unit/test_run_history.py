@@ -67,6 +67,11 @@ def test_history_sorts_latest_first_and_selects_logs(tmp_path: Path):
     assert "Duration:" in dialog.summary.text()
     assert "stdout for latest" in dialog.stdout.toPlainText()
     assert "stderr for latest" in dialog.stderr.toPlainText()
+    assert dialog.technical.toPlainText() == "first line\nsecond line"
+
+    dialog.i18n.set_language("zh_CN")
+    assert dialog.history_table.item(0, 1).text() == "运行失败"
+    assert dialog.technical.toPlainText() == "first line\nsecond line"
 
     dialog.history_table.setCurrentCell(1, 0)
     app_instance().processEvents()
@@ -94,7 +99,10 @@ def test_history_limits_to_50_and_shortens_errors(tmp_path: Path):
     )
     assert dialog.history_table.rowCount() == 50
     assert len(concise_error("x" * 200)) == 120
-    assert dialog.history_table.item(0, 4).text().endswith("…")
+    assert dialog.history_table.item(0, 4).text().startswith(
+        "The external program exited unexpectedly"
+    )
+    assert dialog.technical.toPlainText() == "x" * 200
     dialog.close()
 
 

@@ -61,3 +61,10 @@ def test_fos_uses_the_same_run_scoped_mumu_shutdown_contract(tmp_path: Path):
     )
     assert action is not None
     assert action.arguments == ("control", "--vmindex", "3", "shutdown")
+
+
+def test_onedragon_close_game_option_does_not_create_hsiesta_shutdown_action(tmp_path: Path):
+    job = make_job(tmp_path / "mumu-cli.exe", runner_type="zzz_onedragon")
+    assert create_post_run_action(
+        job, {"emulator_started_by_control_plane": True}
+    ) is None

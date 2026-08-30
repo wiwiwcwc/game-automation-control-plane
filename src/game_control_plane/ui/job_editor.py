@@ -54,7 +54,7 @@ from ..integrations.onedragon import (
     discover_zzz_onedragon,
     format_instance_indices,
 )
-from .i18n import LanguageManager
+from .i18n import LanguageManager, validation_issue_text
 
 
 class JobEditorDialog(QDialog):
@@ -757,7 +757,22 @@ class JobEditorDialog(QDialog):
                 "working_directory": working_directory or None,
             }
             validation = CustomCliIntegration().validate_config(config)
-        errors.extend(validation.errors)
+        localized_issue_messages = [
+            message
+            for issue in validation.issues
+            if (message := validation_issue_text(self.i18n, issue))
+        ]
+        if localized_issue_messages:
+            errors.extend(dict.fromkeys(localized_issue_messages))
+            for issue in validation.issues:
+                if issue.detail:
+                    errors.append(
+                        self.i18n.text("validation.issue_detail", detail=issue.detail)
+                    )
+        else:
+            # Custom CLI and OK-WW retain their established validation text;
+            # older integrations without issues also remain compatible.
+            errors.extend(validation.errors)
         payload = {
             "game_name": game_name,
             "name": job_name,

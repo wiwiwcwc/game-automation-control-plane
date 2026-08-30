@@ -147,11 +147,16 @@ maa-cli summary for every enabled top-level task. If Fight is enabled, it
 additionally requires a positive `Fight ... times` result. A missing,
 unstarted, zero-battle, or task-chain-error result becomes `needs_attention`
 instead of `exited`; the diagnostic output is retained and ownership-based
-emulator cleanup is skipped. For an external task, Hsiesta cannot know which
+emulator cleanup is skipped. These outcomes persist stable diagnostic codes and
+parameters (`maa_managed_incomplete` with missing/unfinished/zero-battle/task-
+chain flags), which the bilingual UI formats while retaining the raw audit
+summary as technical detail. Captured stdout/stderr is not modified with a
+Hsiesta banner. For an external task, Hsiesta cannot know which
 steps its user-maintained TOML intends to run, so even a clean exit becomes
 `needs_attention` with a manual log-review prompt; cleanup is skipped for the
 same reason. Neither path changes `DailyCompletion`, which remains a manual
-confirmation.
+confirmation. The external result uses `maa_external_unverified` even if the
+job is later edited to managed mode; history reads the persisted run snapshot.
 
 ### Upstream documentation
 
@@ -338,8 +343,10 @@ headless automatic run.
 ### Result and safety boundary
 
 OneDragon has no reliable external completion protocol that this release can
-audit. A clean launcher exit therefore becomes `needs_attention`, retains
-stdout/stderr, and never writes `DailyCompletion`; the user must review the
+audit. A clean launcher exit therefore becomes `needs_attention`, persists the
+stable `onedragon_unverified` diagnostic, retains stdout/stderr, and never
+writes `DailyCompletion`; the UI shows “进程已正常结束 · 结果未验证” /
+“Process ended normally · result unverified” while the user must review the
 OneDragon log and use **Mark completed** if the in-game daily really finished.
 When the user presses **Stop**, Hsiesta first requests a graceful QProcess stop.
 If the launcher remains alive, it records the root PID, full executable path,

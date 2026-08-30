@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..domain.models import Job
-from .base import LaunchSpec, ValidationResult
+from .base import LaunchSpec, ValidationIssue, ValidationResult
 from .maa_cli import (
     DEFAULT_EMULATOR_START_TIMEOUT_SECONDS,
     MUMU_EMULATOR_TYPE,
@@ -257,7 +257,19 @@ class MaaPunishIntegration:
         version = config.get("config_version", self.config_version)
         if version != self.config_version:
             errors.append(f"Unsupported MAA_Punish configuration version: {version}")
-        return ValidationResult(valid=not errors, errors=tuple(errors))
+        return ValidationResult(
+            valid=not errors,
+            errors=tuple(errors),
+            issues=(
+                ValidationIssue(
+                    "fos.configuration.invalid",
+                    {"runner": self.runner_type},
+                    " ".join(errors),
+                ),
+            )
+            if errors
+            else (),
+        )
 
     def build_launch_spec(self, job: Job) -> LaunchSpec:
         config = job.runner_config

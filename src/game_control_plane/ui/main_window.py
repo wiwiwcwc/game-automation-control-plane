@@ -19,6 +19,7 @@ from ..persistence.store import Store
 from ..platform.log_retention import prune_run_logs
 from ..platform.paths import AppPaths
 from .dashboard import Dashboard
+from .diagnostics import format_run_diagnostic
 from .job_editor import JobEditorDialog
 from .i18n import LanguageManager, SUPPORTED_LANGUAGES
 from .maa_preflight_dialog import MaaPreflightDialog
@@ -85,6 +86,7 @@ class MainWindow(QMainWindow):
         self.execution.run_finished.connect(self._run_finished)
         self.execution.output_received.connect(self._output_received)
         self.queue.state_changed.connect(self._queue_state_changed)
+        self.queue.item_failed_to_start.connect(self._queue_item_failed_to_start)
         self.i18n.language_changed.connect(self._language_changed)
         self._retranslate_ui()
         self.refresh()
@@ -187,7 +189,11 @@ class MainWindow(QMainWindow):
             )
         except Exception as exc:
             self.logger.exception("Could not save job")
-            QMessageBox.critical(self, self.i18n.text("message.save_failed_title"), str(exc))
+            QMessageBox.critical(
+                self,
+                self.i18n.text("message.save_failed_title"),
+                self.i18n.text("message.save_failed_body", detail=str(exc)),
+            )
             return
         self.refresh()
 
@@ -227,7 +233,11 @@ class MainWindow(QMainWindow):
             self.execution.start(job, runtime_context=runtime_context)
         except Exception as exc:
             self.logger.exception("Could not start job %s", job_id)
-            QMessageBox.critical(self, self.i18n.text("message.start_failed_title"), str(exc))
+            QMessageBox.critical(
+                self,
+                self.i18n.text("message.start_failed_title"),
+                self.i18n.text("message.start_failed_body", detail=str(exc)),
+            )
         self.refresh()
 
     def open_onedragon_gui(self, job_id: int) -> None:
@@ -420,8 +430,10 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(
                 self,
                 self.i18n.text(title_key),
-                str(exc)
-                or self.i18n.text(body_key),
+                (
+                    self.i18n.text(body_key)
+                    + (f"\n{self.i18n.text('validation.issue_detail', detail=str(exc))}" if str(exc) else "")
+                ),
             )
             return None
         if report.ready:
@@ -511,15 +523,17 @@ class MainWindow(QMainWindow):
             finished is not None
             and finished.error_kind == ErrorKind.STOP_FAILED.value
         ):
+            display = format_run_diagnostic(self.i18n, finished)
             QMessageBox.warning(
                 self,
                 self.i18n.text("message.stop_failed_title"),
                 self.i18n.text(
                     "message.stop_failed_body",
-                    summary=finished.error_summary
-                    or self.i18n.text("run.stop_tree_failed_detail"),
+                    summary=display.summary,
                 ),
             )
+            if display.technical_detail:
+                self.logger.warning("Stop failure details for %s: %s", run_id, display.technical_detail)
         if self._closing_requested:
             self._closing_run_ids.discard(run_id)
             self._request_close_if_ready()
@@ -534,6 +548,22 @@ class MainWindow(QMainWindow):
             return
         self.refresh()
 
+    def _queue_item_failed_to_start(self, job_id: int, detail: str) -> None:
+        """Surface synchronous queue launch failures without blocking the queue."""
+
+        if self._database_closed or self._shutdown_finalized:
+            return
+        job = self.store.get_job(job_id)
+        job_name = job.name if job is not None else str(job_id)
+        message = self.i18n.text(
+            "message.queue_start_failed_body",
+            summary=self.i18n.text("diagnostic.queue_start_failed"),
+            job=job_name,
+            detail=detail,
+        )
+        self.statusBar().showMessage(message, 12_000)
+        self.logger.error("Queued job %s failed to start: %s", job_id, detail)
+
     def _disconnect_runtime_signals(self) -> None:
         """Prevent late Qt emissions from entering the closed store."""
 
@@ -542,6 +572,7 @@ class MainWindow(QMainWindow):
             (self.execution.run_finished, self._run_finished),
             (self.execution.output_received, self._output_received),
             (self.queue.state_changed, self._queue_state_changed),
+            (self.queue.item_failed_to_start, self._queue_item_failed_to_start),
         ):
             try:
                 signal.disconnect(slot)

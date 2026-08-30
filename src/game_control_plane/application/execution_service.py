@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
@@ -12,6 +11,7 @@ from PySide6.QtCore import QObject, QProcess, QTimer, Signal
 
 from ..domain.models import ErrorKind, ExitStatus, Job, Run, RunState, TriggerType
 from ..integrations.base import LaunchSpec
+from ..integrations.onedragon import ZZZ_ONEDRAGON_RUNNER_TYPE
 from ..integrations.registry import IntegrationRegistry, default_registry
 from ..persistence.store import Store
 from .emulator_watchdog import EmulatorWatchdog, create_emulator_watchdog
@@ -127,30 +127,13 @@ class ExecutionService(QObject):
             return key
 
     def _localize_assessment(self, assessment: RunResultAssessment) -> RunResultAssessment:
-        if assessment.localization_key is None or self.summary_text is None:
-            return assessment
-        return replace(
-            assessment,
-            summary=self._summary(assessment.localization_key),
-        )
+        """Keep auditor output as technical detail; the UI owns localization."""
+
+        return assessment
 
     def _localize_watchdog_summary(self, summary: str) -> str:
-        """Translate the two built-in MuMu loss summaries for the UI locale."""
+        """Preserve the watchdog's raw detail for the localized UI formatter."""
 
-        if self.summary_text is None:
-            return summary
-        closed = re.fullmatch(
-            r"MuMu instance (\d+) was closed\. The associated automation was stopped\.",
-            summary,
-        )
-        if closed:
-            return self._summary("run.emulator_closed", instance=closed.group(1))
-        android = re.fullmatch(
-            r"Android stopped in MuMu instance (\d+)\. The associated automation was stopped\.",
-            summary,
-        )
-        if android:
-            return self._summary("run.android_stopped", instance=android.group(1))
         return summary
 
     @property
@@ -738,26 +721,35 @@ class ExecutionService(QObject):
             )
         elif outcome.exit_code == 0:
             try:
-                assessment = self._localize_assessment(
-                    self.result_auditor(
-                        active.job,
-                        active.run.stdout_path or "",
-                        active.run.stderr_path or "",
-                    )
+                assessment = self.result_auditor(
+                    active.job,
+                    active.run.stdout_path or "",
+                    active.run.stderr_path or "",
                 )
-            except Exception:
+            except Exception as exc:
                 self.logger.exception("Could not verify automation result for run %s", run_id)
-                assessment = RunResultAssessment(
-                    needs_attention=True,
-                    summary=(
-                        "Hsiesta could not verify the automation result. "
-                        "The emulator was left open."
-                    ),
+                audit_detail = (
+                    f"Result auditor failed: {type(exc).__name__}: {exc}"
+                    if str(exc)
+                    else f"Result auditor failed: {type(exc).__name__}"
                 )
+                if active.job.runner_type == ZZZ_ONEDRAGON_RUNNER_TYPE:
+                    assessment = RunResultAssessment(
+                        needs_attention=True,
+                        # The UI maps this stable code to the dedicated
+                        # OneDragon clean-exit/unverified message while this
+                        # raw detail remains available in run history.
+                        summary=audit_detail,
+                        diagnostic_code=ErrorKind.ONEDRAGON_UNVERIFIED.value,
+                        diagnostic_params={"audit_error": audit_detail},
+                    )
+                else:
+                    assessment = RunResultAssessment(
+                        needs_attention=True,
+                        summary=audit_detail,
+                        diagnostic_code=ErrorKind.AUTOMATION_INCOMPLETE.value,
+                    )
             if assessment.needs_attention:
-                banner = f"\n[Hsiesta] {assessment.summary}\n".encode("utf-8")
-                active.stderr_file.write(banner)
-                active.stderr_file.flush()
                 self._finalize(
                     run_id,
                     state=RunState.NEEDS_ATTENTION,
@@ -768,6 +760,8 @@ class ExecutionService(QObject):
                         or ErrorKind.AUTOMATION_INCOMPLETE.value
                     ),
                     error_summary=assessment.summary,
+                    diagnostic_code=assessment.diagnostic_code,
+                    diagnostic_params=assessment.diagnostic_params,
                 )
                 return
             if active.post_run_action is not None and not active.post_run_action_started:
@@ -811,9 +805,6 @@ class ExecutionService(QObject):
         active.process = process
         active.expected_executable = action.executable
         active.process_identity = None
-        banner = f"\n[Hsiesta] {action.description}: {action.display_command}\n".encode()
-        active.stdout_file.write(banner)
-        active.stdout_file.flush()
         process.started.connect(lambda: self._capture_process_identity(active))
         process.readyReadStandardOutput.connect(lambda: self._on_output(run_id, "stdout"))
         process.readyReadStandardError.connect(lambda: self._on_output(run_id, "stderr"))
@@ -849,6 +840,11 @@ class ExecutionService(QObject):
             error_summary=(
                 f"The automation succeeded, but {description.lower()} timed out."
             ),
+            diagnostic_params={
+                "reason": "timeout",
+                "action": description,
+                "command": active.post_run_action.display_command if active.post_run_action else "",
+            },
         )
 
     def _on_post_run_action_error(self, run_id: str, error: QProcess.ProcessError) -> None:
@@ -868,6 +864,11 @@ class ExecutionService(QObject):
                 f"The automation succeeded, but {active.post_run_action.description.lower()} failed: "
                 f"{message}"
             ),
+            diagnostic_params={
+                "reason": "start",
+                "action": active.post_run_action.description if active.post_run_action else "Post-run action",
+                "command": active.post_run_action.display_command if active.post_run_action else "",
+            },
         )
 
     def _on_post_run_action_finished(
@@ -899,6 +900,12 @@ class ExecutionService(QObject):
             error_summary=(
                 f"The automation succeeded, but {description.lower()} exited with code {exit_code}."
             ),
+            diagnostic_params={
+                "reason": "crash" if exit_status == QProcess.ExitStatus.CrashExit else "nonzero",
+                "exit_code": exit_code,
+                "action": description,
+                "command": active.post_run_action.display_command if active.post_run_action else "",
+            },
         )
 
     def _finalize(
@@ -910,6 +917,8 @@ class ExecutionService(QObject):
         exit_status: str | None = None,
         error_kind: str | None = None,
         error_summary: str | None = None,
+        diagnostic_code: str | None = None,
+        diagnostic_params: dict[str, object] | None = None,
     ) -> None:
         active = self._get_active(run_id)
         if active is None or active.finalized:
@@ -929,6 +938,13 @@ class ExecutionService(QObject):
             active.emulator_watchdog.deleteLater()
             active.emulator_watchdog = None
         finished = self.store.now_iso()
+        if diagnostic_code or diagnostic_params:
+            snapshot_values: dict[str, object] = {}
+            if diagnostic_code:
+                snapshot_values["diagnostic_code"] = diagnostic_code
+            if diagnostic_params:
+                snapshot_values["diagnostic_params"] = dict(diagnostic_params)
+            active.run = self.store.update_run_launch_snapshot(run_id, snapshot_values)
         run = self.store.update_run(
             run_id,
             state=state,

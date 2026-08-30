@@ -55,7 +55,7 @@ def test_dialog_shows_next_step_and_retry_can_reach_ready_state():
     app_instance()
     dialog = MaaPreflightDialog(failed_report(), passed_report)
 
-    assert "Open Edit" in dialog.action_label.text()
+    assert "请选择存在的任务配置" in dialog.action_label.text()
     assert dialog.retry_button.isVisibleTo(dialog)
     assert not dialog.run_button.isVisibleTo(dialog)
     dialog._retry()

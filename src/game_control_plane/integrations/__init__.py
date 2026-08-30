@@ -1,4 +1,4 @@
-from .base import Integration, LaunchSpec, ValidationResult
+from .base import Integration, LaunchSpec, ValidationIssue, ValidationResult
 from .custom_cli import CustomCliIntegration
 from .maa_cli import MaaCliIntegration, discover_maa_cli
 from .maa_punish import MaaPunishIntegration, discover_fos
@@ -31,6 +31,7 @@ __all__ = [
     "OneDragonIntegration",
     "OkWwIntegration",
     "ValidationResult",
+    "ValidationIssue",
     "default_registry",
     "discover_maa_cli",
     "discover_fos",

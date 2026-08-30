@@ -54,6 +54,7 @@ _ZH_CN = {
     "state.failed": "运行失败",
     "state.needs_attention": "部分完成 · 需要检查",
     "state.maa_external_unverified": "未验证 · 需要检查",
+    "state.onedragon_unverified": "进程已正常结束 · 结果未验证",
     "state.interrupted": "已中断",
     "button.run": "运行",
     "button.run_automatic": "自动运行",
@@ -219,6 +220,7 @@ _ZH_CN = {
     "history.duration": "耗时",
     "history.exit_code": "退出码",
     "history.error": "错误摘要",
+    "history.technical": "技术详情",
     "history.stdout": "标准输出 stdout",
     "history.stderr": "标准错误 stderr",
     "history.no_runs": "这个任务还没有运行记录。",
@@ -227,9 +229,11 @@ _ZH_CN = {
     "history.log_gone": "运行日志已被清理或无法读取。",
     "history.log_tail": "[仅显示日志最后 {limit}。]\n{text}",
     "message.save_failed_title": "无法保存任务",
+    "message.save_failed_body": "无法保存任务。技术详情：{detail}",
     "message.start_active_title": "任务已在运行",
     "message.start_active_body": "这个任务正在运行，或已经在每日队列中。",
     "message.start_failed_title": "无法启动任务",
+    "message.start_failed_body": "无法启动任务。技术详情：{detail}",
     "message.nothing_title": "没有可运行的任务",
     "message.nothing_body": "目前没有已启用且等待完成的今日任务。",
     "message.preflight_failed_title": "无法检查 MAA 设置",
@@ -263,6 +267,51 @@ _ZH_CN = {
     "run.emulator_closed": "MuMu 实例 {instance} 已关闭，关联的自动化任务已停止。",
     "run.android_stopped": "MuMu 实例 {instance} 中的 Android 已停止，关联的自动化任务已停止。",
     "run.maa_external_unverified": "外部 MAA 任务已正常退出，但 Hsiesta 无法确认所有日常步骤都已完成。请查看运行日志，确认任务流程后再手动标记今日完成；自动关闭模拟器已跳过，便于你检查本次运行。",
+    "diagnostic.invalid_configuration": "配置无效，请先修正配置后重试。",
+    "diagnostic.executable_missing": "找不到可执行文件，请检查配置路径。",
+    "diagnostic.permission_denied": "没有权限启动程序，请检查文件权限和运行设置。",
+    "diagnostic.failed_to_start": "程序启动失败，请检查可执行文件、权限和工作目录。",
+    "diagnostic.process_crashed": "外部程序异常崩溃，请查看技术详情和日志。",
+    "diagnostic.nonzero_exit": "外部程序异常退出（退出码 {code}），请查看技术详情和日志。",
+    "diagnostic.emulator_disconnected": "模拟器连接中断，任务未能完成。",
+    "diagnostic.post_run_action_failed": "任务结束后的清理动作失败，请检查外部进程。",
+    "diagnostic.cleanup_timeout": "任务完成，但清理动作超时。请检查外部进程。",
+    "diagnostic.cleanup_start_failed": "任务完成，但清理动作无法启动。请检查配置和权限。",
+    "diagnostic.cleanup_nonzero": "任务完成，但清理动作异常退出（退出码 {code}）。",
+    "diagnostic.cleanup_crashed": "任务完成，但清理动作发生崩溃。",
+    "diagnostic.automation_incomplete": "自动化结果未完成或无法验证，请检查运行日志。",
+    "diagnostic.maa_managed_incomplete": "MAA 日常任务未完成，请检查缺失或未完成的步骤。",
+    "diagnostic.maa_missing_summary": "缺少完成摘要：{tasks}。",
+    "diagnostic.maa_unfinished_tasks": "未完成的任务：{tasks}。",
+    "diagnostic.maa_zero_battles": "理智作战未记录任何完成战斗。",
+    "diagnostic.maa_task_chain_error": "MAA 报告了任务链错误。",
+    "diagnostic.onedragon_unverified": "进程已正常结束 · 结果未验证",
+    "diagnostic.interrupted": "任务已被停止，未确认完成。",
+    "diagnostic.stop_failed": "无法安全停止任务，请检查外部进程。",
+    "diagnostic.internal_error": "Hsiesta 内部错误，请查看技术详情。",
+    "diagnostic.unknown": "运行结果需要检查，请查看技术详情和日志。",
+    "diagnostic.technical_details": "技术详情",
+    "diagnostic.queue_start_failed": "队列任务启动失败，已跳过该任务并继续后续队列。",
+    "validation.maa_invalid": "MAA 配置无效。请检查可执行文件、任务文件和模拟器设置。",
+    "validation.fos_invalid": "FOS 配置无效。请检查 FOS 程序、任务配置和模拟器设置。",
+    "validation.onedragon_invalid": "OneDragon 配置无效。请检查启动器路径和官方安装目录。",
+    "preflight.summary.passed": "检查通过。",
+    "preflight.summary.failed": "检查未通过，请先处理此步骤。",
+    "preflight.summary.pending": "检查尚未完成。",
+    "preflight.next.executable": "请选择存在且可运行的程序路径。",
+    "preflight.next.task": "请选择存在的任务配置。",
+    "preflight.next.dry_run": "请修正任务配置并重新检查。",
+    "preflight.next.adb": "请启动模拟器并确认 ADB 连接。",
+    "preflight.next.fos_config": "请选择有效的 FOS 任务配置。",
+    "preflight.next.emulator": "请启动或修正配置中的 MuMu 实例。",
+    "preflight.next.launch": "请检查自动运行接口和权限。",
+    "preflight.next.layout": "请确认 OneDragon 使用完整的官方安装目录。",
+    "preflight.next.accounts": "请确认 OneDragon 账号实例配置有效。",
+    "preflight.detail_summary": "原始摘要：",
+    "preflight.detail_action": "原始建议操作：",
+    "validation.issue_detail": "技术详情：{detail}",
+    "message.queue_start_failed_title": "队列任务启动失败",
+    "message.queue_start_failed_body": "{summary}\n任务：{job}\n技术详情：{detail}",
     "message.remove_title": "删除自动化任务？",
     "message.remove_body": "确定删除“{name}”及其运行历史吗？",
     "message.close_running_title": "仍有任务正在运行",
@@ -316,6 +365,7 @@ _EN_US = {
     "state.exited": "Completed",
     "state.failed": "Failed",
     "state.needs_attention": "Partial · needs attention",
+    "state.onedragon_unverified": "Process ended normally · result unverified",
     "state.maa_external_unverified": "Unverified · needs review",
     "state.interrupted": "Interrupted",
     "button.run": "Run",
@@ -482,6 +532,7 @@ _EN_US = {
     "history.duration": "Duration",
     "history.exit_code": "Exit code",
     "history.error": "Error",
+    "history.technical": "Technical details",
     "history.stdout": "Standard output (stdout)",
     "history.stderr": "Standard error (stderr)",
     "history.no_runs": "No runs recorded for this automation.",
@@ -490,9 +541,11 @@ _EN_US = {
     "history.log_gone": "Captured log is no longer available.",
     "history.log_tail": "[Showing the last {limit} of this log.]\n{text}",
     "message.save_failed_title": "Could not save automation",
+    "message.save_failed_body": "The automation could not be saved. Technical details: {detail}",
     "message.start_active_title": "Automation is already active",
     "message.start_active_body": "This automation is already running or waiting in the daily queue.",
     "message.start_failed_title": "Could not start automation",
+    "message.start_failed_body": "The automation could not be started. Technical details: {detail}",
     "message.nothing_title": "Nothing to run",
     "message.nothing_body": "There are no enabled automations waiting for today's completion.",
     "message.preflight_failed_title": "Could not check MAA setup",
@@ -526,6 +579,51 @@ _EN_US = {
     "run.emulator_closed": "MuMu instance {instance} was closed. The associated automation was stopped.",
     "run.android_stopped": "Android stopped in MuMu instance {instance}. The associated automation was stopped.",
     "run.maa_external_unverified": "The external MAA task exited normally, but Hsiesta cannot confirm that every daily step completed. Review the captured log and manually mark the daily complete only after confirming the task flow; automatic emulator cleanup was skipped so you can inspect this run.",
+    "diagnostic.invalid_configuration": "The configuration is invalid. Fix it before trying again.",
+    "diagnostic.executable_missing": "The executable could not be found. Check the configured path.",
+    "diagnostic.permission_denied": "The program could not be started because permission was denied.",
+    "diagnostic.failed_to_start": "The program could not start. Check the executable, permissions, and working directory.",
+    "diagnostic.process_crashed": "The external program crashed. Review the technical details and captured logs.",
+    "diagnostic.nonzero_exit": "The external program exited unexpectedly (exit code {code}). Review the technical details and captured logs.",
+    "diagnostic.emulator_disconnected": "The emulator connection was lost before the automation completed.",
+    "diagnostic.post_run_action_failed": "A post-run cleanup action failed. Inspect the external process.",
+    "diagnostic.cleanup_timeout": "The task finished, but the cleanup action timed out. Inspect the external process.",
+    "diagnostic.cleanup_start_failed": "The task finished, but the cleanup action could not start. Check the configuration and permissions.",
+    "diagnostic.cleanup_nonzero": "The task finished, but the cleanup action exited unexpectedly (exit code {code}).",
+    "diagnostic.cleanup_crashed": "The task finished, but the cleanup action crashed.",
+    "diagnostic.automation_incomplete": "The automation did not complete or could not be verified. Review the captured log.",
+    "diagnostic.maa_managed_incomplete": "The managed MAA daily did not complete. Review the missing or unfinished steps.",
+    "diagnostic.maa_missing_summary": "Missing completion summary: {tasks}.",
+    "diagnostic.maa_unfinished_tasks": "Unfinished tasks: {tasks}.",
+    "diagnostic.maa_zero_battles": "No completed Sanity battles were recorded.",
+    "diagnostic.maa_task_chain_error": "MAA reported a task-chain error.",
+    "diagnostic.onedragon_unverified": "Process ended normally · result unverified",
+    "diagnostic.interrupted": "The run was stopped before completion was confirmed.",
+    "diagnostic.stop_failed": "The run could not be stopped safely. Inspect the external process.",
+    "diagnostic.internal_error": "Hsiesta encountered an internal error. Review the technical details.",
+    "diagnostic.unknown": "The run result needs review. Check the technical details and captured logs.",
+    "diagnostic.technical_details": "Technical details",
+    "diagnostic.queue_start_failed": "A queued task failed to start. It was skipped and the remaining queue will continue.",
+    "validation.maa_invalid": "The MAA configuration is invalid. Check the executable, task file, and emulator settings.",
+    "validation.fos_invalid": "The FOS configuration is invalid. Check the FOS program, task configuration, and emulator settings.",
+    "validation.onedragon_invalid": "The OneDragon configuration is invalid. Check the launcher path and official installation layout.",
+    "preflight.summary.passed": "Check passed.",
+    "preflight.summary.failed": "Check failed. Resolve this step before running.",
+    "preflight.summary.pending": "Check is still pending.",
+    "preflight.next.executable": "Choose an existing executable that can be started.",
+    "preflight.next.task": "Choose an existing task configuration.",
+    "preflight.next.dry_run": "Fix the task configuration and check again.",
+    "preflight.next.adb": "Start the emulator and confirm its ADB connection.",
+    "preflight.next.fos_config": "Choose a valid FOS task configuration.",
+    "preflight.next.emulator": "Start or correct the configured MuMu instance.",
+    "preflight.next.launch": "Check the automatic launch interface and permissions.",
+    "preflight.next.layout": "Confirm that OneDragon uses a complete official installation directory.",
+    "preflight.next.accounts": "Confirm that the OneDragon account-instance configuration is valid.",
+    "preflight.detail_summary": "Original summary:",
+    "preflight.detail_action": "Original suggested action:",
+    "validation.issue_detail": "Technical details: {detail}",
+    "message.queue_start_failed_title": "Queued task failed to start",
+    "message.queue_start_failed_body": "{summary}\nTask: {job}\nTechnical details: {detail}",
     "message.remove_title": "Remove automation?",
     "message.remove_body": "Remove '{name}' and its stored run history?",
     "message.close_running_title": "Automations are still running",
@@ -671,6 +769,69 @@ def onedragon_preflight_message_text(manager: LanguageManager, message: str) -> 
     return manager.text(exact[message]) if message in exact else message
 
 
+def validation_issue_text(manager: LanguageManager, issue: object) -> str:
+    """Return an actionable localized summary for structured validation metadata."""
+
+    code = getattr(issue, "code", "")
+    key = {
+        "maa.configuration.invalid": "validation.maa_invalid",
+        "fos.configuration.invalid": "validation.fos_invalid",
+        "onedragon.configuration.invalid": "validation.onedragon_invalid",
+    }.get(str(code))
+    if key is None and str(code).startswith("maa."):
+        key = "validation.maa_invalid"
+    if key is None and str(code).startswith("fos."):
+        key = "validation.fos_invalid"
+    if key is None and str(code).startswith("onedragon."):
+        key = "validation.onedragon_invalid"
+    if key is None:
+        return ""
+    return manager.text(key)
+
+
+def preflight_step_text(manager: LanguageManager, kind: str, step: object) -> tuple[str, str]:
+    """Localize a preflight step using its stable code, never its English text."""
+
+    state = str(getattr(getattr(step, "state", None), "value", getattr(step, "state", "")))
+    code = str(getattr(step, "diagnostic_code", "") or "")
+    key = str(getattr(step, "key", ""))
+    code_key = {
+        "onedragon.executable.invalid": "executable",
+        "onedragon.accounts.invalid": "accounts",
+        "onedragon.launch.invalid": "launch",
+        "fos.configuration.invalid": "fos_config",
+        "maa.configuration.invalid": "task",
+    }.get(code)
+    if code_key:
+        key = code_key
+    if state == "passed":
+        summary_key = "preflight.summary.passed"
+    elif state == "failed":
+        summary_key = "preflight.summary.failed"
+    else:
+        summary_key = "preflight.summary.pending"
+    next_key = {
+        "executable": "preflight.next.executable",
+        "task": "preflight.next.task",
+        "dry_run": "preflight.next.dry_run",
+        "adb": "preflight.next.adb",
+        "fos_config": "preflight.next.fos_config",
+        "emulator": "preflight.next.emulator",
+        "launch": "preflight.next.launch",
+        "layout": "preflight.next.layout",
+        "accounts": "preflight.next.accounts",
+    }.get(key, "preflight.next.launch")
+    if kind == "onedragon" and key == "layout" and state == "failed":
+        return (
+            manager.text("onedragon_preflight.layout.missing"),
+            manager.text("onedragon_preflight.layout.next"),
+        )
+    # The fallback is deliberately based on the structured step identity
+    # rather than matching any English summary or next-action text.
+    _ = kind
+    return manager.text(summary_key), manager.text(next_key)
+
+
 __all__ = [
     "DEFAULT_LANGUAGE",
     "LanguageManager",
@@ -680,5 +841,7 @@ __all__ = [
     "onedragon_preflight_message_text",
     "onedragon_preflight_progress_text",
     "preflight_progress_text",
+    "preflight_step_text",
     "state_text",
+    "validation_issue_text",
 ]

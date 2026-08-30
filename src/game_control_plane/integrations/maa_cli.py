@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 
 from ..domain.models import Job
-from .base import LaunchSpec, ValidationResult
+from .base import LaunchSpec, ValidationIssue, ValidationResult
 from .maa_managed_task import validate_managed_daily
 
 
@@ -118,7 +118,19 @@ class MaaCliIntegration:
         version = config.get("config_version", self.config_version)
         if version != self.config_version:
             errors.append(f"Unsupported MAA configuration version: {version}")
-        return ValidationResult(valid=not errors, errors=tuple(errors))
+        return ValidationResult(
+            valid=not errors,
+            errors=tuple(errors),
+            issues=(
+                ValidationIssue(
+                    "maa.configuration.invalid",
+                    {"runner": self.runner_type},
+                    " ".join(errors),
+                ),
+            )
+            if errors
+            else (),
+        )
 
     def build_launch_spec(self, job: Job) -> LaunchSpec:
         config = job.runner_config

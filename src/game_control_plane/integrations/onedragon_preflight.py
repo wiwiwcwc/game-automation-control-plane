@@ -40,10 +40,18 @@ def run_onedragon_preflight(
     if not validation.valid:
         if path is None or not path.is_absolute() or not path.is_file() or kind is None:
             failed_key = "executable"
-        elif any("account" in error.casefold() or "instance" in error.casefold() for error in validation.errors):
+        elif any(issue.code == "onedragon.accounts.invalid" for issue in validation.issues):
             failed_key = "accounts"
         else:
             failed_key = "launch"
+        issue_code = next(
+            (
+                issue.code
+                for issue in validation.issues
+                if issue.code.startswith("onedragon.")
+            ),
+            f"onedragon.{failed_key}.invalid",
+        )
         return _failed(
             steps,
             failed_key,
@@ -54,6 +62,7 @@ def run_onedragon_preflight(
                 else "Open Edit and correct the account indices/close option, then check again."
             ),
             executable,
+            diagnostic_code=issue_code,
         )
     launcher_name = (
         ZZZ_ONEDRAGON_RUNTIME_NAME if kind == "runtime" else ZZZ_ONEDRAGON_CLASSIC_NAME
@@ -84,6 +93,7 @@ def run_onedragon_preflight(
             str(exc),
             "Open Edit and leave the account field blank for active_in_od, or enter positive indices such as 1,2.",
             str(config.get("instance_indices", "")),
+            diagnostic_code="onedragon.accounts.invalid",
         )
     account_summary = (
         "OneDragon will use the active_in_od account."
@@ -229,9 +239,21 @@ def _failed(
     summary: str,
     next_action: str,
     details: str = "",
+    *,
+    diagnostic_code: str | None = None,
 ) -> MaaPreflightReport:
     title = dict(_ONEDRAGON_STEPS)[key]
-    steps.append(CheckStep(key, title, CheckState.FAILED, summary, next_action, details))
+    steps.append(
+        CheckStep(
+            key,
+            title,
+            CheckState.FAILED,
+            summary,
+            next_action,
+            details,
+            diagnostic_code=diagnostic_code,
+        )
+    )
     return _pending_report(steps)
 
 

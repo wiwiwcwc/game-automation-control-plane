@@ -18,14 +18,14 @@
 
 休汐只负责编排外部工具，不是游戏客户端、图像识别引擎或通用机器人。它不会下载或捆绑第三方工具；进程正常退出，也不等于日常已经完成。
 
-当前源码版本为 `0.1.20`，具体支持范围和验证边界以项目文档为准。
+当前源码版本为 `0.1.21`，具体支持范围和验证边界以项目文档为准。
 
 ## Windows 下载
 
 ### 一键安装（推荐）
 
 前往 [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases)，下载
-`Hsiesta-0.1.20-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
+`Hsiesta-0.1.21-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
 `%LOCALAPPDATA%\Programs\Hsiesta`，开始菜单快捷方式默认创建，桌面快捷方式可在向导中选择。
 安装器本身不要求管理员权限；应用内部的 `GameAutomationControlPlane.exe` 仍保留
 `requireAdministrator` 清单，因此启动应用时可能出现 UAC，这是安装权限与运行权限的区别。
@@ -70,7 +70,7 @@ EXE 文件名仍保留 `GameAutomationControlPlane`，这是为了兼容已有�
 | MAA / `maa-cli` | 明日方舟 / Arknights | 版本、任务、dry-run、ADB 预检；受控每日任务审计；外部任务退出后的人工复核；按所有权启动和监控 MuMu |
 | MAA_Punish / FOS | 战双帕弥什 / Punishing: Gray Raven | 读取已保存配置、跟踪任务流，并按精确路径处理 FOS 和 MuMu |
 | OK-WW | 鸣潮 / Wuthering Waves | 任务序号、`-t <index>`、可选 `-e`，以及受限的 worker 交接监控 |
-| 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | “打开界面”启动官方 GUI；“自动运行”使用无界面的 `-o`，可选账号实例和 `-c`；支持本次运行的精确停止 |
+| 绝区零 OneDragon | 绝区零 / Zenless Zone Zero | “打开界面”启动官方 GUI；“自动运行”使用无界面的 `-o`，正常退出显示“结果未验证”，可选账号实例和 `-c`；支持本次运行的精确停止 |
 | Custom CLI | 其他外部脚本 | 明确的解释器 / 可执行文件、逐项参数、工作目录、输出和历史 |
 
 OneDragon 目前支持绝区零版本，使用前需要先安装并配置对应的 OneDragon。
@@ -85,6 +85,8 @@ OneDragon 目前支持绝区零版本，使用前需要先安装并配置对应�
 ### 为什么退出码为 0 还可能显示“需要检查”？
 
 退出码只说明外部进程正常结束，不等于游戏日常已经完成。受控 MAA 任务需要完整的任务摘要和至少一局真实战斗；使用现有任务文件的 external MAA 模式无法推断任务结构，即使退出码为 0 也会进入“需要检查”，并跳过自动关闭模拟器。OneDragon 没有本项目可以信任的外部完成信号，正常退出后同样需要查看日志并手动确认。
+
+运行卡片和历史窗口会根据运行时持久化的诊断码显示当前语言的摘要；OneDragon 正常退出显示“进程已正常结束 · 结果未验证”。原始 `error_summary`、系统/上游错误以及 stdout/stderr 会作为技术详情保留，切换语言不会改写日志。
 
 ### 各适配器已经验证到什么程度？
 

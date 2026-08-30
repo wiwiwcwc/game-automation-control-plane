@@ -17,7 +17,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..integrations.maa_preflight import CheckState, MaaPreflightReport
-from .i18n import LanguageManager, onedragon_preflight_message_text
+from .i18n import LanguageManager, preflight_step_text
 
 
 class MaaPreflightDialog(QDialog):
@@ -123,11 +123,7 @@ class MaaPreflightDialog(QDialog):
             state_label.setText(marker)
             state_label.setStyleSheet(f"font-weight: 700; color: {color};")
             title = self.i18n.text(f"{self.prefix}.step.{step.key}")
-            summary = (
-                onedragon_preflight_message_text(self.i18n, step.summary)
-                if self.report.kind == "onedragon"
-                else step.summary
-            )
+            summary, _ = preflight_step_text(self.i18n, self.report.kind, step)
             text_label.setText(f"<b>{title}</b><br>{summary}")
 
         failed = self.report.failed_step
@@ -135,15 +131,20 @@ class MaaPreflightDialog(QDialog):
             self.action_label.setText(self.i18n.text(f"{self.prefix}.all_passed"))
             details = "\n\n".join(step.details for step in self.report.steps if step.details)
         else:
-            next_action = (
-                onedragon_preflight_message_text(self.i18n, failed.next_action)
-                if self.report.kind == "onedragon"
-                else failed.next_action
-            )
+            _, next_action = preflight_step_text(self.i18n, self.report.kind, failed)
             self.action_label.setText(
                 f"<b>{self.i18n.text('preflight.next_step')}</b><br>{next_action}"
             )
-            details = failed.details
+            technical = [failed.details]
+            if failed.summary:
+                technical.append(
+                    f"{self.i18n.text('preflight.detail_summary')} {failed.summary}"
+                )
+            if failed.next_action:
+                technical.append(
+                    f"{self.i18n.text('preflight.detail_action')} {failed.next_action}"
+                )
+            details = "\n\n".join(value for value in technical if value)
         self.details.setPlainText(details)
         self.details_button.setVisible(bool(details))
         if not details:

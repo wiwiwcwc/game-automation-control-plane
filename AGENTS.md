@@ -183,7 +183,7 @@ python -m pytest
 .\packaging\smoke_test.ps1 -ExecutablePath .\dist\GameAutomationControlPlane\GameAutomationControlPlane.exe
 $iscc = & .\packaging\install_inno_setup.ps1 -InstallDirectory (Join-Path $env:TEMP "hsiesta-inno-setup-7.1.0")
 .\packaging\build_installer.ps1 -IsccPath $iscc
-.\packaging\installer_smoke_test.ps1 -InstallerPath .\dist\Hsiesta-0.1.20-Setup.exe
+.\packaging\installer_smoke_test.ps1 -InstallerPath .\dist\Hsiesta-0.1.21-Setup.exe
 ```
 
 If a non-interactive environment cannot run the installed executable because

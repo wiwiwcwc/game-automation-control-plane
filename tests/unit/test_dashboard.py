@@ -243,4 +243,9 @@ def test_dashboard_does_not_relabel_managed_or_onedragon_attention_runs():
     )
 
     card.set_job(onedragon_job, DailyStatus.PENDING, onedragon_run, False)
-    assert card.execution_metric.value.text().startswith("部分完成 · 需要检查")
+    assert card.execution_metric.value.text().startswith("进程已正常结束 · 结果未验证")
+
+    manager.set_language("en_US")
+    assert card.execution_metric.value.text().startswith(
+        "Process ended normally · result unverified"
+    )
