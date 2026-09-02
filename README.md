@@ -4,9 +4,9 @@
 
 [English](README.en.md) | **简体中文**
 
-[![Latest release](https://img.shields.io/github/v/release/wiwiwcwc/hsiesta?display_name=tag&sort=semver)](https://github.com/wiwiwcwc/hsiesta/releases)
-[![Windows package proof](https://github.com/wiwiwcwc/hsiesta/actions/workflows/windows-package.yml/badge.svg?branch=main)](https://github.com/wiwiwcwc/hsiesta/actions/workflows/windows-package.yml)
-[![AGPL-3.0-only](https://img.shields.io/github/license/wiwiwcwc/hsiesta)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/rikkadeng/hsiesta?display_name=tag&sort=semver)](https://github.com/rikkadeng/hsiesta/releases)
+[![Windows package proof](https://github.com/rikkadeng/hsiesta/actions/workflows/windows-package.yml/badge.svg?branch=main)](https://github.com/rikkadeng/hsiesta/actions/workflows/windows-package.yml)
+[![AGPL-3.0-only](https://img.shields.io/github/license/rikkadeng/hsiesta)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](README.md)
 
 <img src="src/game_control_plane/assets/app_icon.png" alt="休汐 Hsiesta 图标" width="128">
@@ -18,14 +18,14 @@
 
 休汐只负责编排外部工具，不是游戏客户端、图像识别引擎或通用机器人。它不会下载或捆绑第三方工具；进程正常退出，也不等于日常已经完成。
 
-当前源码版本为 `0.1.21`，具体支持范围和验证边界以项目文档为准。
+当前源码版本为 `0.1.22`，具体支持范围和验证边界以项目文档为准。
 
 ## Windows 下载
 
 ### 一键安装（推荐）
 
-前往 [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases)，下载
-`Hsiesta-0.1.21-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
+前往 [GitHub Releases](https://github.com/rikkadeng/hsiesta/releases)，下载
+`Hsiesta-0.1.22-Setup.exe`，双击后按向导完成安装。安装器默认只写入当前用户的
 `%LOCALAPPDATA%\Programs\Hsiesta`，开始菜单快捷方式默认创建，桌面快捷方式可在向导中选择。
 安装器本身不要求管理员权限；应用内部的 `GameAutomationControlPlane.exe` 仍保留
 `requireAdministrator` 清单，因此启动应用时可能出现 UAC，这是安装权限与运行权限的区别。

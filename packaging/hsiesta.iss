@@ -15,8 +15,8 @@ AppName={#HsiestaAppName}
 AppVersion={#AppVersion}
 AppVerName={#HsiestaAppName} {#AppVersion}
 AppPublisher={#HsiestaAppName}
-AppPublisherURL=https://github.com/wiwiwcwc/hsiesta
-AppSupportURL=https://github.com/wiwiwcwc/hsiesta/issues
+AppPublisherURL=https://github.com/rikkadeng/hsiesta
+AppSupportURL=https://github.com/rikkadeng/hsiesta/issues
 DefaultDirName={localappdata}\Programs\Hsiesta
 DefaultGroupName={#HsiestaAppName}
 ; Keep the group page available so silent deployment can explicitly override

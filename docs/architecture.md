@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the 0.1.21 implementation, not a promise about future
+This document describes the 0.1.22 implementation, not a promise about future
 integrations. The main path is:
 
 ```text

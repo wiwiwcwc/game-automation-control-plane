@@ -4,9 +4,9 @@
 
 [简体中文](README.md) | **English**
 
-[![Latest release](https://img.shields.io/github/v/release/wiwiwcwc/hsiesta?display_name=tag&sort=semver)](https://github.com/wiwiwcwc/hsiesta/releases)
-[![Windows package proof](https://github.com/wiwiwcwc/hsiesta/actions/workflows/windows-package.yml/badge.svg?branch=main)](https://github.com/wiwiwcwc/hsiesta/actions/workflows/windows-package.yml)
-[![AGPL-3.0-only](https://img.shields.io/github/license/wiwiwcwc/hsiesta)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/rikkadeng/hsiesta?display_name=tag&sort=semver)](https://github.com/rikkadeng/hsiesta/releases)
+[![Windows package proof](https://github.com/rikkadeng/hsiesta/actions/workflows/windows-package.yml/badge.svg?branch=main)](https://github.com/rikkadeng/hsiesta/actions/workflows/windows-package.yml)
+[![AGPL-3.0-only](https://img.shields.io/github/license/rikkadeng/hsiesta)](LICENSE)
 [![Windows](https://img.shields.io/badge/platform-Windows-0078D6?logo=windows&logoColor=white)](README.en.md)
 
 <img src="src/game_control_plane/assets/app_icon.png" alt="Hsiesta icon" width="128">
@@ -17,14 +17,14 @@ Support will expand gradually as each tool's launch, monitoring, and completion 
 
 It only orchestrates external tools. It is not a game client, image-recognition engine, or general-purpose bot. It does not download or bundle third-party tools; a normal process exit is not proof that a daily task finished.
 
-The current source version is `0.1.21`.
+The current source version is `0.1.22`.
 
 ## Windows download
 
 ### One-click installation (recommended)
 
-Open [GitHub Releases](https://github.com/wiwiwcwc/hsiesta/releases), download
-`Hsiesta-0.1.21-Setup.exe`, double-click it, and follow the wizard. The installer
+Open [GitHub Releases](https://github.com/rikkadeng/hsiesta/releases), download
+`Hsiesta-0.1.22-Setup.exe`, double-click it, and follow the wizard. The installer
 defaults to the current user's `%LOCALAPPDATA%\Programs\Hsiesta`; a Start Menu
 shortcut is created by default and the desktop shortcut is optional. The installer
 itself does not require administrator privileges, while the existing

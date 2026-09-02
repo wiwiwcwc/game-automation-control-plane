@@ -4,5 +4,5 @@
 
 - [中文首页](README.md)
 - [英文 README](README.en.md)
-- [GitHub 仓库](https://github.com/wiwiwcwc/hsiesta)
-- [Windows 下载](https://github.com/wiwiwcwc/hsiesta/releases)
+- [GitHub 仓库](https://github.com/rikkadeng/hsiesta)
+- [Windows 下载](https://github.com/rikkadeng/hsiesta/releases)

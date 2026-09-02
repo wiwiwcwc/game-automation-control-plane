@@ -1,7 +1,14 @@
 # Changelog
 
-All notable changes are recorded here. Version 0.1.21 is the current source
+All notable changes are recorded here. Version 0.1.22 is the current source
 version of the project.
+
+## [0.1.22] — 2026-09-02
+
+### Changed
+
+- Updated the canonical GitHub repository identity and project links to
+  `rikkadeng/hsiesta` after the GitHub username change.
 
 ## [0.1.21] — 2026-08-30
 

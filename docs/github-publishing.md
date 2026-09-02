@@ -5,7 +5,7 @@ AGPL-3.0-only. Keep the root `LICENSE` file in the first public commit and in
 every distributed Windows package.
 
 This document records the original first-publication workflow. The repository
-is public and the current source version is `v0.1.21`; use the steps below as a
+is public and the current source version is `v0.1.22`; use the steps below as a
 checklist for future releases, not as a request to recreate the repository.
 
 ## 1. Protect the commit email
@@ -52,13 +52,13 @@ configuration files appear in the staged list.
 
 ## 4. Repository name and historical bootstrap
 
-The intended canonical GitHub repository is `wiwiwcwc/hsiesta`. When the GitHub
-rename is carried out, rename the existing repository rather than creating a
-second one: GitHub can then redirect old repository links and Git remotes.
-After the rename, update local clones to the canonical remote:
+The canonical GitHub repository is `rikkadeng/hsiesta`. It was migrated by
+renaming the existing repository rather than creating a second one, so GitHub
+can redirect old repository links and Git remotes. Point local clones at the
+canonical remote:
 
 ```powershell
-git remote set-url origin https://github.com/wiwiwcwc/hsiesta.git
+git remote set-url origin https://github.com/rikkadeng/hsiesta.git
 ```
 
 If a new repository ever has to be bootstrapped from a separate working tree,
